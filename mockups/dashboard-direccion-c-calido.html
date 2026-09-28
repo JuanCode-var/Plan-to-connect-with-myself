@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Dr. Axón — Dirección C: Acompañamiento</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Karla:wght@400;500;600;700&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Karla', system-ui, sans-serif; background: #FBF3EA; color: #3B2E26; }
+  h1, h2, h3 { font-family: 'Outfit', system-ui, sans-serif; margin: 0; }
+  a { color: #C1694F; text-decoration: none; } a:hover { color: #A2543D; }
+  .card { background: #FFFFFF; border-radius: 20px; box-shadow: 0 2px 14px rgba(59,46,38,0.06); }
+  .pill { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; font-family: 'Outfit', sans-serif; }
+</style>
+</head>
+<body>
+
+<div style="width: 100%; min-height: 100vh; background: #FBF3EA; padding: 32px 48px; display: flex; flex-direction: column; gap: 24px;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="30" height="30" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="10" fill="none" stroke="#C1694F" stroke-width="2.8" stroke-dasharray="54 10" stroke-linecap="round" transform="rotate(-90 14 14)"></circle>
+        <circle cx="14" cy="4" r="2.8" fill="#C1694F"></circle>
+      </svg>
+      <span style="font-size: 20px; font-weight: 700; font-family: 'Outfit', sans-serif;">Dr. Axón</span>
+    </div>
+
+    <nav style="display: flex; gap: 6px; background: #FFFFFF; padding: 6px; border-radius: 999px; box-shadow: 0 2px 10px rgba(59,46,38,0.06); flex-wrap: wrap;">
+      <div class="pill" style="color: #8A7566;">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="3"></rect><line x1="3" y1="8.3" x2="17" y2="8.3"></line><line x1="3" y1="13.6" x2="17" y2="13.6"></line></svg>
+        Seguimiento
+      </div>
+      <div class="pill" style="color: #8A7566;">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3l7 3.5-7 3.5-7-3.5L10 3z"></path><path d="M3 10.5l7 3.5 7-3.5"></path><path d="M3 14l7 3.5 7-3.5"></path></svg>
+        Hábitos
+      </div>
+      <div class="pill" style="color: #8A7566;">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="12" height="15" rx="1.5"></rect><line x1="7" y1="6.8" x2="13" y2="6.8"></line><line x1="7" y1="9.8" x2="13" y2="9.8"></line></svg>
+        Diario
+      </div>
+      <div class="pill" style="background: #C1694F; color: #FFFFFF;">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="17" x2="17" y2="17"></line><rect x="5" y="10" width="3" height="7"></rect><rect x="9.5" y="6" width="3" height="11"></rect><rect x="14" y="8.5" width="3" height="8.5"></rect></svg>
+        Resumen
+      </div>
+    </nav>
+
+    <div class="pill" style="background: #FFFFFF; color: #3B2E26; box-shadow: 0 2px 10px rgba(59,46,38,0.06);">
+      14 sep – 13 oct 2026
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#8A7566" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5l3 3 3-3"></path></svg>
+    </div>
+  </div>
+
+  <div>
+    <h1 style="font-size: 30px; font-weight: 700;">¡Hola! Así vas en el Ciclo 1</h1>
+    <div style="font-size: 14px; color: #8A7566; margin-top: 4px;">Día 12 de 30 · seguí así, vas mejorando semana a semana</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 180px repeat(3, minmax(160px,1fr)); gap: 16px;">
+    <div class="card" style="padding: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #C1694F;">
+      <div style="position: relative; width: 92px; height: 92px;">
+        <svg width="92" height="92" viewBox="0 0 92 92">
+          <circle cx="46" cy="46" r="38" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="10"></circle>
+          <circle cx="46" cy="46" r="38" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-dasharray="159.9 238.8" transform="rotate(-90 46 46)"></circle>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #FFFFFF; font-family: 'Outfit', sans-serif;">67%</div>
+      </div>
+      <div style="font-size: 12px; color: #FBE4DB; font-weight: 600;">cumplimiento general</div>
+    </div>
+    <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 13px; color: #8A7566;">Cumplidos</div>
+      <div style="font-size: 28px; font-weight: 700; font-family: 'Outfit', sans-serif; color: #7C9473;">84</div>
+    </div>
+    <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 13px; color: #8A7566;">Pendientes</div>
+      <div style="font-size: 28px; font-weight: 700; font-family: 'Outfit', sans-serif;">42</div>
+    </div>
+    <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 13px; color: #8A7566;">No aplica</div>
+      <div style="font-size: 28px; font-weight: 700; font-family: 'Outfit', sans-serif; color: #B7A896;">18</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(5, minmax(120px,1fr)); gap: 14px;">
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: #F6E3DA; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #C1694F; font-family: 'Outfit', sans-serif;">11</div>
+      <div style="font-size: 12px; color: #8A7566;">días sin apuestas</div>
+    </div>
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: #F6E3DA; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #C1694F; font-family: 'Outfit', sans-serif;">10</div>
+      <div style="font-size: 12px; color: #8A7566;">días sin alcohol</div>
+    </div>
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: #E9EFE6; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #7C9473; font-family: 'Outfit', sans-serif;">8</div>
+      <div style="font-size: 12px; color: #8A7566;">con entrenamiento</div>
+    </div>
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: #E9EFE6; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #7C9473; font-family: 'Outfit', sans-serif;">9</div>
+      <div style="font-size: 12px; color: #8A7566;">con estudio</div>
+    </div>
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: #FBF0D8; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #B48A00; font-family: 'Outfit', sans-serif;">12</div>
+      <div style="font-size: 12px; color: #8A7566;">registro emocional</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px;">
+    <div class="card" style="padding: 24px 26px;">
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 18px;">% de cumplimiento por hábito</h3>
+      <div style="display: flex; align-items: flex-end; gap: 9px; height: 150px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:117px;background:#70AD47;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:138px;background:#FFD966;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:60px;background:#DDD3C6;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:53px;background:#DDD3C6;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:138px;background:#C1694F;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:125px;background:#C1694F;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:100px;background:#70AD47;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:112px;background:#70AD47;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:132px;background:#70AD47;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:120px;background:#70AD47;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:82px;background:#9B8AB0;border-radius:10px 10px 4px 4px;"></div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;"><div style="width:100%;max-width:22px;height:150px;background:#D8B84A;border-radius:10px 10px 4px 4px;"></div></div>
+      </div>
+      <div style="display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8A7566;"><span style="width:9px;height:9px;border-radius:50%;background:#C1694F;display:inline-block;"></span>Prioridad máxima</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8A7566;"><span style="width:9px;height:9px;border-radius:50%;background:#70AD47;display:inline-block;"></span>Hábito base</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8A7566;"><span style="width:9px;height:9px;border-radius:50%;background:#FFD966;display:inline-block;"></span>Suplemento</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8A7566;"><span style="width:9px;height:9px;border-radius:50%;background:#DDD3C6;display:inline-block;"></span>Opcional</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8A7566;"><span style="width:9px;height:9px;border-radius:50%;background:#9B8AB0;display:inline-block;"></span>Condicional</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8A7566;"><span style="width:9px;height:9px;border-radius:50%;background:#D8B84A;display:inline-block;"></span>Autoconocimiento</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 24px 26px; display: flex; flex-direction: column;">
+      <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">Tendencia diaria</h3>
+      <div style="font-size: 12px; color: #8A7566; margin-bottom: 12px;">Día 12 de 30 · seguís mejorando</div>
+      <svg viewBox="0 0 320 150" style="width: 100%; height: 150px;">
+        <defs>
+          <linearGradient id="fillC" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#C1694F" stop-opacity="0.25"></stop>
+            <stop offset="100%" stop-color="#C1694F" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <path d="M10,86 C 30,80 40,72 64.5,64 C 80,59 100,68 119.1,58.5 C 135,51 160,58 173.6,55.2 C 195,50 210,50 228.2,42 C 245,36 265,47 282.7,36.5 C 295,29 300,33 310,31 L 310,140 L 10,140 Z" fill="url(#fillC)"></path>
+        <path d="M10,86 C 30,80 40,72 64.5,64 C 80,59 100,68 119.1,58.5 C 135,51 160,58 173.6,55.2 C 195,50 210,50 228.2,42 C 245,36 265,47 282.7,36.5 C 295,29 300,33 310,31" fill="none" stroke="#C1694F" stroke-width="3" stroke-linecap="round"></path>
+        <circle cx="310" cy="31" r="5" fill="#C1694F"></circle>
+      </svg>
+    </div>
+  </div>
+
+  <div class="card" style="padding: 24px 26px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+      <h3 style="font-size: 16px; font-weight: 700;">Comparación entre ciclos</h3>
+      <div style="display: flex; align-items: center; gap: 6px; background: #E9EFE6; color: #587050; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l3.5-4L7 6l3-3.5"></path><path d="M7.3 2.3H10v2.7"></path></svg>
+        +19 puntos desde el ciclo anterior
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 96px; font-size: 13px; color: #8A7566;">Ciclo Piloto</div>
+        <div style="flex: 1; height: 14px; background: #F1E9DE; border-radius: 999px; overflow: hidden;"><div style="width: 48%; height: 100%; background: #DDD3C6;"></div></div>
+        <div style="width: 40px; font-size: 13px; color: #8A7566; text-align: right;">48%</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 96px; font-size: 13px; color: #3B2E26; font-weight: 700;">Ciclo 1</div>
+        <div style="flex: 1; height: 14px; background: #F1E9DE; border-radius: 999px; overflow: hidden;"><div style="width: 67%; height: 100%; background: #C1694F;"></div></div>
+        <div style="width: 40px; font-size: 13px; color: #C1694F; text-align: right; font-weight: 700;">67%</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

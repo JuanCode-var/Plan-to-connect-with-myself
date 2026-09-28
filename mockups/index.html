@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Dr. Axón — Propuestas de mockup</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #F4F2EE; color: #20242B; padding: 48px 24px; }
+  .wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  p.lead { color: #6B7078; margin: 0 0 12px; }
+  .card { display: block; background: #fff; border: 1px solid #E2DED5; border-radius: 12px; padding: 20px 22px; text-decoration: none; color: inherit; }
+  .card:hover { border-color: #BDB6A6; }
+  .card h2 { font-size: 17px; margin: 0 0 6px; }
+  .card p { margin: 0; color: #6B7078; font-size: 14px; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>Dr. Axón — Propuestas de mockup para /dashboard</h1>
+    <p class="lead">Tres direcciones visuales distintas, mismos datos de ejemplo. Abrí cada una para comparar.</p>
+  </div>
+
+  <a class="card" href="./dashboard-direccion-impulso-clinico.html" style="border-color:#FFB020; background: linear-gradient(180deg, #FFF7EA, #FFFFFF);">
+    <h2><span class="swatch" style="background:#FFB020;"></span>★ Impulso + Clínico — con modo claro/oscuro</h2>
+    <p>La combinación elegida: estructura y precisión de A, energía y anillo de progreso de B. Tiene un botón funcional para alternar entre modo oscuro y modo claro sin cambiar el diseño.</p>
+  </a>
+
+  <div style="height:1px;background:#E2DED5;margin:4px 0;"></div>
+  <p style="margin:-8px 0 0;font-size:13px;color:#8A8577;">Direcciones originales (referencia):</p>
+
+  <a class="card" href="./dashboard-direccion-a-clinico.html">
+    <h2><span class="swatch" style="background:#1F6F6B;"></span>A · Enfoque clínico</h2>
+    <p>Claro, editorial (serif + sans), acento verde-azulado único, sidebar izquierdo. Confianza tipo app de salud.</p>
+  </a>
+
+  <a class="card" href="./dashboard-direccion-b-oscuro.html">
+    <h2><span class="swatch" style="background:#FFB020;"></span>B · Impulso (modo oscuro)</h2>
+    <p>Oscuro, motivacional, tipografía grotesca + monoespaciada, anillo de progreso, barras con brillo.</p>
+  </a>
+
+  <a class="card" href="./dashboard-direccion-c-calido.html">
+    <h2><span class="swatch" style="background:#C1694F;"></span>C · Acompañamiento</h2>
+    <p>Cálido, redondeado, copy que acompaña en vez de solo mostrar números. Baja la sensación de "examen".</p>
+  </a>
+</div>
+</body>
+</html>

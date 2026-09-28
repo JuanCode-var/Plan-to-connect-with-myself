@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/dev.db"
+}
+
+// NOTA: el conector sqlite de Prisma no soporta el tipo `enum` nativo (limitación
+// estructural y permanente de SQLite, no de la versión de Prisma instalada). Los
+// campos que en design.md son enums se modelan aquí como `String` con el contrato
+// de valores documentado en el comentario de cada campo. Ese contrato se valida en
+// la capa de API con zod antes de persistir (secciones 3-6 de tasks.md) y es el
+// mismo contrato que consume el frontend: cualquier cambio a estos valores requiere
+// grep en apps/web/src y apps/api/src (ver reglas del guardian del schema).
+//
+// HabitCategory: PRIORIDAD_MAXIMA | SUPLEMENTO | OPCIONAL | HABITO_BASE | CONDICIONAL | AUTOCONOCIMIENTO
+// HabitMoment:   MANANA | DIA | NOCHE | CIERRE_DEL_DIA
+// LogStatus:     DONE | PENDING | NA
+
+// User es intencionalmente independiente del resto del modelo (sin
+// relaciones a Habit/Cycle/HabitLog/EmotionalEntry): esta sigue siendo una
+// app de una sola persona por instancia, no multi-tenant. La cuenta existe
+// para identificar "quién entra" y personalizar (nombre, saludo según hora,
+// felicitaciones), no para particionar los hábitos/ciclos por usuario.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Habit {
+  id            String     @id @default(cuid())
+  name          String
+  moment        String // HabitMoment: MANANA | DIA | NOCHE | CIERRE_DEL_DIA
+  specification String
+  category      String // HabitCategory: PRIORIDAD_MAXIMA | SUPLEMENTO | OPCIONAL | HABITO_BASE | CONDICIONAL | AUTOCONOCIMIENTO
+  sortOrder     Int
+  active        Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  logs          HabitLog[]
+}
+
+model Cycle {
+  id        String     @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime   @default(now())
+  logs      HabitLog[]
+}
+
+model HabitLog {
+  id      String   @id @default(cuid())
+  habitId String
+  habit   Habit    @relation(fields: [habitId], references: [id])
+  cycleId String
+  cycle   Cycle    @relation(fields: [cycleId], references: [id])
+  date    DateTime
+  status  String   @default("PENDING") // LogStatus: DONE | PENDING | NA
+
+  @@unique([habitId, date])
+  @@index([cycleId, date])
+}
+
+model EmotionalEntry {
+  id        String   @id @default(cuid())
+  date      DateTime
+  emotion   String
+  situation String?
+  feeling   String?
+  impulse   String?
+  decision  String?
+  learning  String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}

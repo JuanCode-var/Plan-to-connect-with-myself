@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+/*
+ * Design tokens compartidos por todo el shell de navegación y las 4 vistas
+ * ("Impulso + Clínico"): oscuro por defecto, con anulación en modo claro.
+ * Ver mockups/dashboard-direccion-impulso-clinico.html — misma paleta.
+ */
+:root {
+  --bg: #14171f;
+  --surface: #1b1f29;
+  --border: #262b37;
+  --text: #f2f1ed;
+  --text-2: #8b90a0;
+  --accent: #ffb020;
+  --accent-soft: rgba(255, 176, 32, 0.12);
+  --accent-ink: #14171f;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f5f1;
+  --surface: #ffffff;
+  --border: #e6e1d8;
+  --text: #20242b;
+  --text-2: #6b7078;
+  --accent: #c97c1e;
+  --accent-soft: #fbebd2;
+  --accent-ink: #ffffff;
+}
+
+.font-display {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
+
+.font-mono-num {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+/* Brillo sutil en modo oscuro para barras/línea de los gráficos de
+   Recharts (SVG puro, por eso usa `filter`, no `box-shadow`); en modo claro
+   no se aplica (se ve como una mancha, no un brillo). `currentColor` toma
+   el valor de `style={{ color }}` que le pasa cada gráfico. */
+.chart-glow {
+  filter: none;
+}
+:root[data-theme="dark"] .chart-glow {
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+/*
+ * Refuerzo positivo instantáneo al marcar un hábito como cumplido (ver
+ * TrackerMatrix.tsx::StatusCell). El "pop" es el propio círculo animándose;
+ * el "burst" es un halo del color de marca (--accent, el mismo dorado del
+ * CTA) que se expande y se desvanece detrás del círculo — nunca lo tapa,
+ * porque en el DOM va antes que el botón (mismo stacking, pinta primero).
+ * Sin z-index a propósito: la tabla ya usa z-10/z-20 para columnas fijas.
+ */
+@keyframes cell-pop {
+  0% { transform: scale(0.85); }
+  45% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+@keyframes cell-burst {
+  0% { opacity: 0.6; transform: scale(0.5); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+.cell-pop {
+  animation: cell-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cell-burst {
+  position: absolute;
+  inset: -5px;
+  border-radius: 9999px;
+  background: var(--accent);
+  animation: cell-burst 550ms ease-out forwards;
+  pointer-events: none;
+}
+
+/* Entrada sutil de la tarjeta de /welcome (Welcome.tsx). */
+@keyframes welcome-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.welcome-card {
+  animation: welcome-in 480ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: >
+  Dr. Axón — aplicativo personal de seguimiento de hábitos (recuperación de
+  disciplina, apuestas, alcohol, sueño, estudio, entrenamiento y regulación
+  emocional). Evoluciona desde un Excel de checklist horizontal (12 hábitos x
+  30 días) hacia una app web local, de un solo usuario, sin nube ni login.
+
+  Stack obligatorio (no cambiar sin una nueva propuesta):
+  - Monorepo con npm workspaces: apps/web (frontend) y apps/api (backend).
+  - Frontend: React 18 + TypeScript vía Vite, react-router-dom, @tanstack/react-query.
+  - Backend: Node.js + Express + TypeScript, API REST bajo /api.
+  - Base de datos: SQLite vía Prisma, archivo en apps/api/data/dev.db.
+  - Estilos: Tailwind CSS. Gráficos: Recharts.
+  - Linter: oxlint (.oxlintrc.json en la raíz) en vez de ESLint.
+  - Ejecución 100% local: apps/api en :4000, apps/web en :5173 con proxy /api.
+  - Sin autenticación multiusuario, sin despliegue en la nube.
+
+  Contexto de dominio (no perder al implementar):
+  - 12 hábitos agrupados en 4 momentos del día (Mañana, Día, Noche, Cierre del
+    día) y 6 categorías (Prioridad máxima, Suplemento, Opcional, Hábito base,
+    Condicional, Autoconocimiento).
+  - "Cero apuestas" y "Cero alcohol" son de categoría Prioridad máxima y deben
+    destacarse visualmente en toda la UI (color distintivo, nunca al mismo
+    nivel visual que un hábito opcional).
+  - El sistema debe soportar múltiples "ciclos" de seguimiento (no fechas fijas
+    de 30 días hardcodeadas), para poder evolucionar el plan con el tiempo y
+    comparar cumplimiento entre ciclos.
+  - El bloque de advertencias sobre suplementos (Neurobion, melatonina,
+    creatina, melena de león, levadura de cerveza) debe estar siempre visible
+    en /habits, no oculto detrás de un menú.
+  - Es una herramienta de seguimiento personal, no un producto médico. No debe
+    presentarse ni implementarse como diagnóstico o tratamiento.
+
+rules:
+  proposal:
+    - "Toda propuesta nueva debe indicar en 'Impact' si afecta el esquema de Prisma, y si sí, listar las migraciones necesarias."
+    - "No proponer autenticación multiusuario, despliegue en la nube, ni notificaciones push sin que el usuario lo pida explícitamente — están fuera de alcance del proyecto por defecto."
+  design:
+    - "Respetar el stack de 'context' salvo que la propuesta declare explícitamente un cambio de stack."
+    - "Todo endpoint nuevo de apps/api se documenta en una tabla Método/Ruta/Capability/Uso dentro de design.md, igual que en add-habit-tracker-app."
+    - "La UI de hábitos de categoría 'Prioridad máxima' siempre debe tener un tratamiento visual distinto (color) al resto de categorías."
+  tasks:
+    - "Separar siempre las tareas de apps/api de las de apps/web en secciones distintas."
+    - "La última tarea de cada change debe ser correr 'npx oxlint' en la raíz sin warnings."
+  specs:
+    - "Cada Requirement debe tener al menos un Scenario en formato GIVEN/WHEN/THEN (usando #### Scenario: con 4 almohadillas)."
+    - "Los requirements de UI que involucren marcar un hábito como cumplido deben especificar que el cambio de estado ocurre en un máximo de un clic, sin recargar la página."
