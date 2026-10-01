@@ -2,10 +2,12 @@ import type { ComponentType } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTheme } from "../lib/useTheme";
 import { useAuth } from "../lib/useAuth";
+import { useBackgroundScene } from "../lib/useBackgroundScene";
 import { firstName, timeOfDayGreeting, timeOfDayVariant } from "../lib/greeting";
 import { ProfileMenu } from "./ProfileMenu";
 import { Logo } from "./Logo";
 import { TimeOfDayIcon } from "./TimeOfDayIcon";
+import { AnimatedBackground } from "./AnimatedBackground";
 
 function IconTracker() {
   return (
@@ -52,10 +54,20 @@ function IconDashboard() {
   );
 }
 
+function IconLibrary() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 4.5c1.8-1 4.2-1 6 0v11c-1.8-1-4.2-1-6 0v-11z" />
+      <path d="M17 4.5c-1.8-1-4.2-1-6 0v11c1.8-1 4.2-1 6 0v-11z" />
+    </svg>
+  );
+}
+
 const NAV_ITEMS: Array<{ to: string; label: string; Icon: ComponentType }> = [
   { to: "/tracker", label: "Seguimiento", Icon: IconTracker },
   { to: "/habits", label: "Hábitos", Icon: IconHabits },
   { to: "/journal", label: "Diario", Icon: IconJournal },
+  { to: "/library", label: "Biblioteca", Icon: IconLibrary },
   { to: "/dashboard", label: "Resumen", Icon: IconDashboard },
 ];
 
@@ -70,6 +82,7 @@ const NAV_ITEMS: Array<{ to: string; label: string; Icon: ComponentType }> = [
 export function AppShell() {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const { scene, setScene } = useBackgroundScene();
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row" style={{ background: "var(--bg)" }}>
@@ -116,11 +129,19 @@ export function AppShell() {
           )}
 
           {user && (
-            <ProfileMenu user={user} theme={theme} onToggleTheme={toggleTheme} onSignOut={signOut} />
+            <ProfileMenu
+              user={user}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              backgroundScene={scene}
+              onBackgroundSceneChange={setScene}
+              onSignOut={signOut}
+            />
           )}
         </header>
 
-        <main className="min-w-0 flex-1 pb-16 md:pb-0" style={{ background: "var(--bg)", color: "var(--text)" }}>
+        <main className="relative isolate min-w-0 flex-1 pb-16 md:pb-0" style={{ color: "var(--text)" }}>
+          <AnimatedBackground scene={scene} />
           <Outlet />
         </main>
 

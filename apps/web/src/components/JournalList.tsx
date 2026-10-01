@@ -24,6 +24,7 @@ export function JournalList({
     from: from || undefined,
     to: to || undefined,
     emotion: emotion || undefined,
+    kind: "emotion",
   });
 
   return (
@@ -72,12 +73,12 @@ export function JournalList({
       {isError && <p className="text-red-500">No se pudo cargar el historial.</p>}
       {entries && entries.length === 0 && <p style={{ color: "var(--text-2)" }}>Sin registros.</p>}
 
-      <ul className="flex flex-col gap-2">
+      <ul className="mosaic-wall columns-1 sm:columns-2 lg:columns-3">
         {entries?.map((entry) => (
           <li
             key={entry.id}
-            className="rounded-md border p-3"
-            style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+            className="mosaic-card panel-card rounded-2xl border p-3 pt-4"
+            style={{ background: "var(--surface)", borderColor: "var(--border)", "--tile-accent": "var(--accent)" } as React.CSSProperties}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-mono-num font-medium">{entry.date.slice(0, 10)}</span>
@@ -111,6 +112,11 @@ export function JournalList({
             {entry.learning && (
               <p className="text-sm">
                 <b>Qué aprendí:</b> {entry.learning}
+              </p>
+            )}
+            {entry.knowledge && (
+              <p className="text-sm">
+                <b>Conocimientos del día:</b> {entry.knowledge}
               </p>
             )}
           </li>

@@ -66,15 +66,37 @@ model HabitLog {
   @@index([cycleId, date])
 }
 
+// LibrarySection: LIBRO | FRASE | FILOSOFIA
+// LibrarySource:  SEED (curado por la app, no editable) | USER (agregado por
+// la persona, se puede borrar)
+model LibraryEntry {
+  id        String   @id @default(cuid())
+  section   String // LibrarySection: LIBRO | FRASE | FILOSOFIA
+  source    String // LibrarySource: SEED | USER
+  title     String?
+  author    String?
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([section])
+}
+
 model EmotionalEntry {
   id        String   @id @default(cuid())
   date      DateTime
-  emotion   String
+  // Opcional a propósito: una entrada puede ser un check-in emocional (con
+  // emoción) o una entrada de solo "Conocimientos y reflexiones" sin pasar
+  // por ninguna situación emocional puntual.
+  emotion   String?
   situation String?
   feeling   String?
   impulse   String?
   decision  String?
   learning  String?
+  // Distinto de `learning`: ese es lo aprendido DE ESTA situación puntual;
+  // `knowledge` es un espacio más general para conocimientos/ideas del día
+  // que no dependen de haber pasado por una situación emocional difícil.
+  knowledge String?
   createdAt DateTime @default(now())
 
   @@index([date])

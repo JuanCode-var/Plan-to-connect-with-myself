@@ -20,7 +20,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       </svg>
       {!compact && (
         <span className="font-display text-lg font-bold" style={{ color: "var(--text)" }}>
-          Dr. Axón
+          Evolving Mind
         </span>
       )}
     </div>

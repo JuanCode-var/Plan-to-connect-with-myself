@@ -14,6 +14,10 @@ dist-ssr
 apps/api/data/
 _stray_scaffold_backup/
 
+# Contenido personal y privado de la Biblioteca (libros/filosofías/frases
+# propias): nunca debe subirse al repositorio remoto.
+apps/api/prisma/seed-library-personal.ts
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

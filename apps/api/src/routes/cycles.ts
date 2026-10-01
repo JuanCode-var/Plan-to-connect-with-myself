@@ -45,6 +45,24 @@ router.post("/", async (req, res) => {
   res.status(201).json(cycle);
 });
 
+router.delete("/:id", async (req, res) => {
+  const cycle = await prisma.cycle.findUnique({ where: { id: req.params.id } });
+  if (!cycle) {
+    res.status(404).json({ error: "Ciclo no encontrado" });
+    return;
+  }
+
+  // Borrar el ciclo se lleva sus HabitLog: fuera de su ciclo esos registros
+  // no tienen sentido propio (decisión explícita del usuario, no un default
+  // de Prisma — la relación no tiene onDelete: Cascade en el schema).
+  await prisma.$transaction([
+    prisma.habitLog.deleteMany({ where: { cycleId: cycle.id } }),
+    prisma.cycle.delete({ where: { id: cycle.id } }),
+  ]);
+
+  res.status(204).send();
+});
+
 router.get("/:id/logs", async (req, res) => {
   const cycle = await prisma.cycle.findUnique({ where: { id: req.params.id } });
   if (!cycle) {

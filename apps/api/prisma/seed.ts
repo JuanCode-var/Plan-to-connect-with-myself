@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { seedLibrary } from "./seed-library-data";
 
 const prisma = new PrismaClient();
 
@@ -132,7 +133,9 @@ async function main() {
     },
   });
 
-  console.log(`Seed completo: ${habits.length} hábitos y Ciclo 1 creados.`);
+  await seedLibrary(prisma);
+
+  console.log(`Seed completo: ${habits.length} hábitos, Ciclo 1 y la Biblioteca creados.`);
 }
 
 main()

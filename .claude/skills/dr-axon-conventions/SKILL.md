@@ -23,11 +23,17 @@ Habit          { id, name, moment, specification, category, sortOrder, active }
 Cycle          { id, name, startDate, endDate }
 HabitLog       { id, habitId, cycleId, date, status }  // @@unique([habitId, date])
 EmotionalEntry { id, date, emotion, situation, feeling, impulse, decision, learning }
+LibraryEntry   { id, section, source, title?, author?, content, createdAt }
 
-enum HabitMoment   { MANANA, DIA, NOCHE, CIERRE_DEL_DIA }
-enum HabitCategory { PRIORIDAD_MAXIMA, SUPLEMENTO, OPCIONAL, HABITO_BASE, CONDICIONAL, AUTOCONOCIMIENTO }
-enum LogStatus     { DONE, PENDING, NA }
+enum HabitMoment    { MANANA, DIA, NOCHE, CIERRE_DEL_DIA }
+enum HabitCategory  { PRIORIDAD_MAXIMA, SUPLEMENTO, OPCIONAL, HABITO_BASE, CONDICIONAL, AUTOCONOCIMIENTO }
+enum LogStatus      { DONE, PENDING, NA }
+enum LibrarySection { LIBRO, FRASE, FILOSOFIA }
+enum LibrarySource  { SEED, USER }  // SEED = curado por la app, no se puede borrar desde la API
 ```
+Borrar un `Cycle` (`DELETE /api/cycles/:id`) se lleva también sus `HabitLog` en
+la misma transacción — decisión explícita del usuario, no default de Prisma
+(la relación no tiene `onDelete: Cascade`).
 Fechas: guardar siempre como fecha pura (medianoche UTC), nunca con hora local —
 es la causa típica de bugs de "un día antes/después" en trackers de hábitos.
 
@@ -49,18 +55,24 @@ El texto exacto de cada especificación está en
 `openspec/changes/add-habit-tracker-app/specs/habit-catalog/spec.md` — cópialo
 literal en el seed, no lo reformules.
 
-## Colores por categoría (usar siempre estos, no inventar otros)
-| Categoría | Chip (saturado) | Tinte de fila (suave) |
-|---|---|---|
-| PRIORIDAD_MAXIMA | `#C00000` texto blanco | `#E79E9E` |
-| SUPLEMENTO | `#FFD966` texto oscuro | `#FFF4D4` |
-| OPCIONAL | `#BFBFBF` texto oscuro | `#EDEDED` |
-| HABITO_BASE | `#70AD47` texto blanco | `#DFECD6` |
-| CONDICIONAL | `#8064A2` texto blanco | `#E3DCEA` |
-| AUTOCONOCIMIENTO | `#E5B800` texto oscuro | `#F8EDBF` |
+## Colores por prioridad (usar siempre estos, no inventar otros)
+Cada hábito tiene un **nivel de prioridad real** (`HABIT_CATEGORY_PRIORITY`, no
+la categoría en sí) y cada nivel un color bien distinto (`HABIT_PRIORITY_COLORS`),
+ambos en `apps/web/src/domain.ts` — cambiar solo ahí, todo lo demás (ícono de
+`PriorityIcon`, anillos "por prioridad" de TodayProgress, barras del Resumen)
+lee de acá.
 
-El tinte de fila cubre TODA la fila (de la columna de hábito hasta el último día),
-no solo la celda de categoría — así la fila se ve como una unidad.
+| Nivel | Categorías | Color | Significado |
+|---|---|---|---|
+| ALTA | PRIORIDAD_MAXIMA | `#DC2626` (rojo) | hacerse primero, urgente |
+| MEDIA | HABITO_BASE, CONDICIONAL, AUTOCONOCIMIENTO | `var(--accent)` (dorado de marca) | el grueso de la rutina diaria |
+| BAJA | SUPLEMENTO, OPCIONAL | `#0D9488` (teal) | se puede saltear |
+
+Nada de chip sólido ni de fila pintada (se probó y se sacó): el color vive SOLO
+en el ícono de `PriorityIcon` (llama/hoja/punto) junto al nombre del hábito —
+el color fuerte de fondo se reserva para el estado cumplido/pendiente de cada
+celda. `${color}26` (alpha hex) no funciona con `var(--accent)`: usar el
+helper `softTint`/`var(--accent-soft)` para fondos suaves con el color MEDIA.
 
 ## Fórmula de porcentaje (crítica, siempre igual en frontend y backend)
 ```
@@ -78,13 +90,16 @@ denominador es 0 (todo `NA`), el resultado es 0%, nunca un error o `NaN`.
 
 ## Mapa de endpoints (`apps/api`, ver design.md para el detalle)
 ```
-GET/POST   /api/habits            PATCH /api/habits/:id
-GET/POST   /api/cycles            GET   /api/cycles/:id/logs
+GET/POST   /api/habits            PATCH  /api/habits/:id
+GET/POST   /api/cycles            GET    /api/cycles/:id/logs
+DELETE     /api/cycles/:id        (borra también sus HabitLog)
 PUT        /api/logs/:habitId/:date
 GET/POST   /api/journal
 GET        /api/dashboard/:cycleId
 GET        /api/dashboard/compare
+GET/POST   /api/library[?section=LIBRO|FRASE|FILOSOFIA]
+DELETE     /api/library/:id       (403 si source=SEED)
 ```
 
 ## Rutas del frontend
-`/` → redirige a `/tracker` · `/tracker` · `/habits` · `/journal` · `/dashboard`
+`/` → redirige a `/tracker` · `/tracker` · `/habits` · `/journal` · `/dashboard` · `/library`

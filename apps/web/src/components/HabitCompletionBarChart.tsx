@@ -1,24 +1,18 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { HABIT_CATEGORY_COLORS, HABIT_CATEGORY_LABELS, type HabitCategory } from "../domain";
+import { HABIT_CATEGORY_PRIORITY, HABIT_PRIORITY_COLORS, HABIT_PRIORITY_LEVELS } from "../domain";
 import type { CycleSummary } from "../api/dashboard";
 import { useTheme } from "../lib/useTheme";
 import { CHART_COLORS } from "../lib/chartTheme";
 
-const LEGEND_CATEGORIES: HabitCategory[] = [
-  "PRIORIDAD_MAXIMA",
-  "HABITO_BASE",
-  "SUPLEMENTO",
-  "OPCIONAL",
-  "CONDICIONAL",
-  "AUTOCONOCIMIENTO",
-];
+const PRIORITY_LABELS = { ALTA: "Prioridad alta", MEDIA: "Prioridad media", BAJA: "Prioridad baja" };
 
 /**
- * Barras de % de cumplimiento por hábito. El color de cada barra sale de
- * `HABIT_CATEGORY_COLORS[category].chipBg` (única fuente de color por
- * categoría) — así "Cero apuestas" y "Cero alcohol" (PRIORIDAD_MAXIMA) se
- * destacan en rojo automáticamente, sin hardcodear esos dos nombres acá. El
- * resto del gráfico (grilla, ejes, tooltip) sí sigue el tema claro/oscuro.
+ * Barras de % de cumplimiento por hábito. El color de cada barra sale del
+ * NIVEL de prioridad del hábito (`HABIT_CATEGORY_PRIORITY` + `HABIT_PRIORITY_COLORS`,
+ * ver domain.ts) — las 6 categorías caen en 3 colores, los mismos que
+ * PriorityIcon y los anillos de TodayProgress, así "Cero apuestas" y "Cero
+ * alcohol" se destacan en rojo (prioridad alta) automáticamente. El resto
+ * del gráfico (grilla, ejes, tooltip) sí sigue el tema claro/oscuro.
  */
 export function HabitCompletionBarChart({ byHabit }: { byHabit: CycleSummary["byHabit"] }) {
   const { theme } = useTheme();
@@ -27,7 +21,7 @@ export function HabitCompletionBarChart({ byHabit }: { byHabit: CycleSummary["by
   const data = byHabit.map((habit) => ({
     name: habit.name,
     percent: Math.round(habit.completionRate * 100),
-    category: habit.category,
+    priority: HABIT_CATEGORY_PRIORITY[habit.category],
   }));
 
   return (
@@ -55,7 +49,7 @@ export function HabitCompletionBarChart({ byHabit }: { byHabit: CycleSummary["by
             />
             <Bar dataKey="percent" radius={[4, 4, 0, 0]}>
               {data.map((entry) => {
-                const color = HABIT_CATEGORY_COLORS[entry.category].chipBg;
+                const color = HABIT_PRIORITY_COLORS[entry.priority];
                 return <Cell key={entry.name} fill={color} className="chart-glow" style={{ color }} />;
               })}
             </Bar>
@@ -63,13 +57,13 @@ export function HabitCompletionBarChart({ byHabit }: { byHabit: CycleSummary["by
         </ResponsiveContainer>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-        {LEGEND_CATEGORIES.map((category) => (
-          <div key={category} className="flex items-center gap-1.5 text-[11px]" style={{ color: colors.text2 }}>
+        {HABIT_PRIORITY_LEVELS.map((level) => (
+          <div key={level} className="flex items-center gap-1.5 text-[11px]" style={{ color: colors.text2 }}>
             <span
               className="inline-block h-2 w-2 rounded-full"
-              style={{ background: HABIT_CATEGORY_COLORS[category].chipBg }}
+              style={{ background: HABIT_PRIORITY_COLORS[level] }}
             />
-            {HABIT_CATEGORY_LABELS[category]}
+            {PRIORITY_LABELS[level]}
           </div>
         ))}
       </div>

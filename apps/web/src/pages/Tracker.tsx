@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCycleLogs, useCycles } from "../api/tracking";
 import { CycleSelector } from "../components/CycleSelector";
+import { DeleteCycleButton } from "../components/DeleteCycleButton";
 import { NewCycleForm } from "../components/NewCycleForm";
 import { TrackerMatrix } from "../components/TrackerMatrix";
 import { TodayProgress } from "../components/TodayProgress";
@@ -38,7 +39,7 @@ export function Tracker() {
   return (
     <div
       className="min-h-full px-4 py-6 sm:px-8 sm:py-8"
-      style={{ background: "var(--bg)", color: "var(--text)" }}
+      style={{ color: "var(--text)" }}
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -56,6 +57,13 @@ export function Tracker() {
                 cycles={cycles}
                 selectedCycleId={effectiveCycleId}
                 onChange={setSelectedCycleId}
+              />
+            )}
+            {effectiveCycleId && cycles && (
+              <DeleteCycleButton
+                cycleId={effectiveCycleId}
+                cycleName={cycles.find((c) => c.id === effectiveCycleId)?.name ?? "este ciclo"}
+                onDeleted={() => setSelectedCycleId(undefined)}
               />
             )}
             <button

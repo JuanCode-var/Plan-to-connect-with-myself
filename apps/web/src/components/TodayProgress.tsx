@@ -1,5 +1,5 @@
 import type { CycleLogs } from "../api/tracking";
-import { HABIT_CATEGORY_COLORS, type HabitCategory } from "../domain";
+import { HABIT_PRIORITY_COLORS, type HabitCategory } from "../domain";
 import { isDateCountableForHabit, toDateOnlyISO } from "../lib/completion";
 import { todayISO } from "../lib/date";
 import { firstName } from "../lib/greeting";
@@ -8,19 +8,24 @@ import { useAuth } from "../lib/useAuth";
 import { FitnessRings, type FitnessRingData } from "./FitnessRings";
 import { FlameIcon } from "./FlameIcon";
 
-// Los 3 anillos agrupan las 6 categorías del dominio en 3 "metas" del día,
-// al estilo Apple Fitness (Move/Exercise/Stand): el anillo externo es la
-// prioridad no negociable, el del medio son los hábitos base, el interno
-// junta el resto. Los dos primeros colores son EXACTAMENTE
-// HABIT_CATEGORY_COLORS (no se inventan) — el tercero usa el acento de marca
-// de la app, no un color nuevo tampoco.
+// Los 3 anillos muestran el progreso de HOY de cada NIVEL de prioridad, uno
+// a uno (ver HABIT_CATEGORY_PRIORITY en domain.ts) — no de categorías
+// sueltas: el externo es prioridad alta (PRIORIDAD_MAXIMA, lo primero que
+// hay que resolver en el día), el del medio es prioridad media (hábitos
+// base + condicionales + autoconocimiento), el interno es prioridad baja
+// (suplementos opcionales). Los colores son EXACTAMENTE HABIT_PRIORITY_COLORS
+// (no se inventan acá), los mismos que usa PriorityIcon en el resto de la app.
 const RING_GROUPS: Array<{ label: string; categories: HabitCategory[]; color: string }> = [
-  { label: "Prioridad máxima", categories: ["PRIORIDAD_MAXIMA"], color: HABIT_CATEGORY_COLORS.PRIORIDAD_MAXIMA.chipBg },
-  { label: "Hábito base", categories: ["HABITO_BASE"], color: HABIT_CATEGORY_COLORS.HABITO_BASE.chipBg },
+  { label: "Prioridad alta", categories: ["PRIORIDAD_MAXIMA"], color: HABIT_PRIORITY_COLORS.ALTA },
   {
-    label: "Otros",
-    categories: ["SUPLEMENTO", "OPCIONAL", "CONDICIONAL", "AUTOCONOCIMIENTO"],
-    color: "var(--accent)",
+    label: "Prioridad media",
+    categories: ["HABITO_BASE", "CONDICIONAL", "AUTOCONOCIMIENTO"],
+    color: HABIT_PRIORITY_COLORS.MEDIA,
+  },
+  {
+    label: "Prioridad baja",
+    categories: ["SUPLEMENTO", "OPCIONAL"],
+    color: HABIT_PRIORITY_COLORS.BAJA,
   },
 ];
 

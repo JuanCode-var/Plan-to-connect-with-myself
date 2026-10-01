@@ -5,22 +5,24 @@ import type { Emotion } from "../domain";
 export type JournalEntry = {
   id: string;
   date: string;
-  emotion: Emotion;
+  emotion: Emotion | null;
   situation: string | null;
   feeling: string | null;
   impulse: string | null;
   decision: string | null;
   learning: string | null;
+  knowledge: string | null;
   createdAt: string;
 };
 
-type JournalFilters = { from?: string; to?: string; emotion?: Emotion };
+type JournalFilters = { from?: string; to?: string; emotion?: Emotion; kind?: "emotion" | "knowledge" };
 
 function buildQuery(filters: JournalFilters): string {
   const params = new URLSearchParams();
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
   if (filters.emotion) params.set("emotion", filters.emotion);
+  if (filters.kind) params.set("kind", filters.kind);
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
@@ -34,12 +36,13 @@ export function useJournalEntries(filters: JournalFilters = {}) {
 
 type CreateJournalEntryInput = {
   date: string;
-  emotion: Emotion;
+  emotion?: Emotion;
   situation?: string;
   feeling?: string;
   impulse?: string;
   decision?: string;
   learning?: string;
+  knowledge?: string;
 };
 
 export function useCreateJournalEntry() {

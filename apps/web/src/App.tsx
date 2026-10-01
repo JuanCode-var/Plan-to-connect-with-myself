@@ -4,6 +4,7 @@ import { RequireAuth } from './components/RequireAuth'
 import { Dashboard } from './pages/Dashboard'
 import { Habits } from './pages/Habits'
 import { Journal } from './pages/Journal'
+import { Library } from './pages/Library'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Tracker } from './pages/Tracker'
@@ -22,6 +23,7 @@ function App() {
           <Route path="/habits" element={<Habits />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/library" element={<Library />} />
         </Route>
       </Route>
     </Routes>

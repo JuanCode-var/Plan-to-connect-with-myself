@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { AuthUser } from "../api/auth";
 import type { Theme } from "../lib/themeContext";
+import type { BackgroundScene } from "../lib/backgroundContext";
 import { ThemeToggle } from "./ThemeToggle";
+import { BackgroundPicker } from "./BackgroundPicker";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -21,11 +23,15 @@ export function ProfileMenu({
   user,
   theme,
   onToggleTheme,
+  backgroundScene,
+  onBackgroundSceneChange,
   onSignOut,
 }: {
   user: AuthUser;
   theme: Theme;
   onToggleTheme: () => void;
+  backgroundScene: BackgroundScene;
+  onBackgroundSceneChange: (scene: BackgroundScene) => void;
   onSignOut: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -86,6 +92,13 @@ export function ProfileMenu({
               Tema {theme === "dark" ? "oscuro" : "claro"}
             </span>
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          </div>
+
+          <div className="flex items-center justify-between border-t py-1.5" style={{ borderColor: "var(--border)" }}>
+            <span className="text-xs" style={{ color: "var(--text-2)" }}>
+              Fondo animado
+            </span>
+            <BackgroundPicker scene={backgroundScene} onChange={onBackgroundSceneChange} />
           </div>
 
           <button

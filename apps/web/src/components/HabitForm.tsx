@@ -9,7 +9,7 @@ import {
 } from "../domain";
 import { useCreateHabit } from "../api/habits";
 
-export function HabitForm() {
+export function HabitForm({ onCreated }: { onCreated?: () => void }) {
   const [name, setName] = useState("");
   const [moment, setMoment] = useState<HabitMoment>("MANANA");
   const [category, setCategory] = useState<HabitCategory>("HABITO_BASE");
@@ -25,6 +25,7 @@ export function HabitForm() {
         onSuccess: () => {
           setName("");
           setSpecification("");
+          onCreated?.();
         },
       },
     );

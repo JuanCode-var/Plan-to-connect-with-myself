@@ -61,6 +61,27 @@ export function useCreateCycle() {
   });
 }
 
+/**
+ * Borra el ciclo y, con él, todos sus HabitLog (decisión explícita: fuera de
+ * su ciclo esos registros no tienen sentido propio, ver DELETE /cycles/:id
+ * en apps/api). Invalida tanto la lista de ciclos como la cache de logs de
+ * ESE ciclo puntual — no sea que quede una consulta vieja apuntando a un
+ * ciclo que ya no existe.
+ */
+export function useDeleteCycle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cycleId: string) => apiFetch<void>(`/cycles/${cycleId}`, { method: "DELETE" }),
+    onSuccess: (_data, cycleId) => {
+      queryClient.invalidateQueries({ queryKey: ["cycles"] });
+      queryClient.removeQueries({ queryKey: cycleLogsQueryKey(cycleId) });
+    },
+    onError: () => {
+      showToast("No se pudo eliminar el ciclo.");
+    },
+  });
+}
+
 type SetLogStatusInput = { habitId: string; date: string; status: LogStatus };
 
 /**

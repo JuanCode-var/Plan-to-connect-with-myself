@@ -1,12 +1,15 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import {
-  HABIT_CATEGORY_COLORS,
+  HABIT_CATEGORY_PRIORITY,
   HABIT_MOMENTS,
   HABIT_MOMENT_LABELS,
+  HABIT_PRIORITY_COLORS,
   type HabitCategory,
   type HabitMoment,
   type LogStatus,
 } from "../domain";
+import { PriorityIcon } from "./PriorityIcon";
+import { randomLibraryEntry, useLibrary } from "../api/library";
 import { useSetLogStatus } from "../api/tracking";
 import type { CycleLogs, HabitLog } from "../api/tracking";
 import {
@@ -46,6 +49,30 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
   const [naMenu, setNaMenu] = useState<NaMenuState>(null);
   const { user } = useAuth();
   const today = todayISO();
+  const { data: quotes } = useLibrary("FRASE");
+
+  // Navegación entre días de la tabla (ver DAY_STEP_PX más abajo): antes solo
+  // existía el scroll horizontal nativo, delgado y poco visible, para llegar
+  // a la columna de "Hoy" en ciclos largos. Los botones ◀ Hoy ▶ dan una
+  // alternativa grande y explícita para moverse; el scrollbar nativo (ahora
+  // también más grueso y con el color de marca, ver .tracker-scroll en
+  // index.css) sigue funcionando para quien prefiera arrastrar directo.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const todayHeaderRef = useRef<HTMLTableCellElement | null>(null);
+
+  useEffect(() => {
+    todayHeaderRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [cycleId]);
+
+  const DAY_STEP_PX = 7 * 46; // una semana de columnas (44px + bordes)
+
+  function scrollByDays(direction: 1 | -1) {
+    scrollContainerRef.current?.scrollBy({ left: direction * DAY_STEP_PX, behavior: "smooth" });
+  }
+
+  function scrollToToday() {
+    todayHeaderRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }
 
   const lookup = buildLogLookup(logs);
 
@@ -57,6 +84,17 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
     const current = effectiveStatus(habitId, date);
     const next: LogStatus = current === "DONE" ? "PENDING" : "DONE";
     setLogStatus.mutate({ habitId, date, status: next });
+
+    // Frase motivacional (Biblioteca, sección FRASE) en cada hábito logrado
+    // — no solo al cerrar el día. Al azar, independiente del toast de "día
+    // completo" de abajo: ambos pueden apilarse (ToastHost soporta varios a
+    // la vez) sin pisarse.
+    if (next === "DONE") {
+      const quote = randomLibraryEntry(quotes);
+      if (quote) {
+        showToast(`✨ ${quote.content}${quote.author ? ` — ${quote.author}` : ""}`);
+      }
+    }
 
     // Refuerzo positivo inmediato: si esta marca cierra TODOS los hábitos
     // contables de hoy, un toast celebra el cierre del día. Se calcula acá
@@ -107,7 +145,41 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
 
   return (
     <div className="relative">
-      <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
+      <div className="mb-2 flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={() => scrollByDays(-1)}
+          aria-label="Ver días anteriores"
+          title="Días anteriores"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold transition-transform hover:scale-105 active:scale-95"
+          style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={scrollToToday}
+          className="rounded-full px-3 py-1.5 text-xs font-semibold transition-transform hover:scale-105 active:scale-95"
+          style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+        >
+          Hoy
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollByDays(1)}
+          aria-label="Ver días siguientes"
+          title="Días siguientes"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-base font-bold transition-transform hover:scale-105 active:scale-95"
+          style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+        >
+          ›
+        </button>
+      </div>
+      <div
+        ref={scrollContainerRef}
+        className="tracker-scroll overflow-x-auto rounded-xl border"
+        style={{ borderColor: "var(--border)" }}
+      >
         <table className="w-max border-collapse text-sm">
           <thead>
             <tr>
@@ -122,17 +194,16 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                 return (
                   <th
                     key={date}
+                    ref={isToday ? todayHeaderRef : undefined}
                     className="min-w-[44px] border-b p-1 text-center text-xs font-normal"
                     style={{
                       background: "var(--surface)",
                       borderColor: "var(--border)",
                       color: isToday ? "var(--text)" : "var(--text-2)",
                       // "Hoy" se marca con un anillo neutro (var(--text)), no
-                      // con --accent: --accent es el mismo naranja que la
-                      // prioridad "baja" en la fila, y usarlo aquí también
-                      // haría que dos sistemas de color distintos (columna
-                      // actual vs. prioridad del hábito) compitan por el
-                      // mismo hue.
+                      // con --accent: ese color ya se usa para el estado de
+                      // ánimo general de la app (CTA, "Hoy" del saludo), no
+                      // hace falta reutilizarlo también acá.
                       boxShadow: isToday ? "inset 0 0 0 2px var(--text)" : undefined,
                     }}
                   >
@@ -167,11 +238,11 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                     </td>
                   </tr>
                   {habitsForMoment.map((habit) => {
-                    // El fondo de fila es siempre neutro (mismo tono que el
-                    // header): el color de categoría/prioridad se reserva
-                    // como acento (borde izquierdo), no como relleno, para no
-                    // competir con el estado cumplido/pendiente de cada celda.
-                    const accent = HABIT_CATEGORY_COLORS[habit.category as HabitCategory].chipBg;
+                    // El fondo de fila es siempre neutro: el color fuerte se
+                    // reserva para el estado cumplido/pendiente de cada
+                    // celda, no para la prioridad del hábito (esa se lee con
+                    // el ícono de PriorityIcon, no con hue).
+                    const priorityLevel = HABIT_CATEGORY_PRIORITY[habit.category as HabitCategory];
                     const streak = calculateCurrentStreak(habit, days, effectiveStatus, today);
                     return (
                       <tr key={habit.id}>
@@ -181,28 +252,13 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                             background: "var(--surface)",
                             borderColor: "var(--border)",
                             color: "var(--text)",
-                            // inset box-shadow en vez de border-left: en una
-                            // tabla con border-collapse, un border-left de
-                            // <td> se puede fusionar/redondear de forma
-                            // distinta según los bordes vecinos (grosor
-                            // inconsistente entre filas, corte en las
-                            // esquinas). El box-shadow inset pinta dentro de
-                            // la celda, sin interactuar con el collapse.
-                            boxShadow: `inset 4px 0 0 0 ${accent}`,
                           }}
                           title={habit.specification}
                         >
                           <div className="flex items-center gap-1.5">
-                            {/* Doble codificación (no solo color): el mismo
-                                dot que la leyenda de arriba (TodayProgress),
-                                para que el código de color se aprenda una
-                                sola vez y no dependa de distinguir el hue de
-                                una franja fina de 4px. */}
-                            <span
-                              className="inline-block h-2 w-2 shrink-0 rounded-full"
-                              style={{ background: accent }}
-                              aria-hidden
-                            />
+                            <span style={{ color: HABIT_PRIORITY_COLORS[priorityLevel] }} aria-hidden>
+                              <PriorityIcon level={priorityLevel} />
+                            </span>
                             <span>{habit.name}</span>
                             {/* Racha visible desde 2 días: por debajo de eso
                                 todavía no es una racha real y solo agrega

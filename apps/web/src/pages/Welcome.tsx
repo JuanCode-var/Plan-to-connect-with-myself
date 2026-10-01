@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { randomLibraryEntry, useLibrary } from "../api/library";
 import { useCycleLogs, useCycles } from "../api/tracking";
 import type { HabitLog } from "../api/tracking";
 import type { LogStatus } from "../domain";
@@ -39,6 +41,13 @@ export function Welcome() {
   const { data: cycles } = useCycles();
   const activeCycle = cycles?.find((c) => c.isActive);
   const { data: cycleLogs } = useCycleLogs(activeCycle?.id);
+
+  // Frase del día: una al azar de la Biblioteca (ver Library.tsx), fija
+  // mientras dura este montaje — Welcome solo se muestra una vez por día
+  // (ver hasSeenWelcomeToday), así que esto ya es "una frase nueva cada día
+  // que te conectás" sin lógica de fecha extra acá.
+  const { data: quotes } = useLibrary("FRASE");
+  const quoteOfTheDay = useMemo(() => randomLibraryEntry(quotes), [quotes]);
 
   let perfectStreak = 0;
   if (cycleLogs) {
@@ -93,6 +102,13 @@ export function Welcome() {
         ) : (
           <p className="text-sm" style={{ color: "var(--text-2)" }}>
             Hoy es un buen día para empezar de nuevo.
+          </p>
+        )}
+
+        {quoteOfTheDay && (
+          <p className="text-sm italic" style={{ color: "var(--text-2)" }}>
+            “{quoteOfTheDay.content}”
+            {quoteOfTheDay.author && <span className="not-italic"> — {quoteOfTheDay.author}</span>}
           </p>
         )}
 

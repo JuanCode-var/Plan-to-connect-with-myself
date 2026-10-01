@@ -1,5 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 /*
  * Design tokens compartidos por todo el shell de navegación y las 4 vistas
@@ -15,6 +15,10 @@
   --accent: #ffb020;
   --accent-soft: rgba(255, 176, 32, 0.12);
   --accent-ink: #14171f;
+  /* Superficie dedicada a la vista de lectura de la Biblioteca: un poco más
+     clara que --surface para que la "página" se distinga del resto del
+     chrome de la app, como un papel propio. */
+  --reading-surface: #20242f;
 }
 
 :root[data-theme="light"] {
@@ -26,6 +30,7 @@
   --accent: #c97c1e;
   --accent-soft: #fbebd2;
   --accent-ink: #ffffff;
+  --reading-surface: #fffdf6;
 }
 
 .font-display {
@@ -34,6 +39,10 @@
 
 .font-mono-num {
   font-family: "IBM Plex Mono", monospace;
+}
+
+.font-reading {
+  font-family: "Lora", Georgia, "Times New Roman", serif;
 }
 
 /* Brillo sutil en modo oscuro para barras/línea de los gráficos de
@@ -76,6 +85,95 @@
   pointer-events: none;
 }
 
+/* Scroll horizontal de la tabla de /tracker (TrackerMatrix.tsx): más grueso
+   y con el color de marca en vez del scrollbar nativo delgado y casi
+   invisible — los botones ◀ Hoy ▶ son la forma principal de moverse entre
+   días, esto es el refuerzo visual para quien arrastra directo. */
+.tracker-scroll {
+  scrollbar-color: var(--accent) var(--surface);
+  scrollbar-width: thin;
+}
+.tracker-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.tracker-scroll::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+.tracker-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 9999px;
+}
+
+/* Toque interactivo en los chips de categoría (CategoryBadge.tsx): el badge
+   es neutro a propósito (el color fuerte se reserva para cumplido/
+   pendiente), así que el hover tampoco trae color — solo un realce sutil de
+   borde/fondo, igual en claro y oscuro. */
+.category-chip {
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.category-chip:hover {
+  transform: translateY(-1px);
+  border-color: var(--text-2);
+  background: var(--accent-soft);
+}
+
+/*
+ * Tablero estilo Padlet (Hábitos, Diario, Biblioteca): tarjetas de alto
+ * variable que fluyen en mosaico, cada una con una franja de color arriba
+ * según su tipo/prioridad — como notas fijadas en un corcho, pero prolijas.
+ * CSS columns en vez de grid-masonry (sin soporte universal todavía): cada
+ * tarjeta es un hijo directo de .mosaic-wall con `break-inside: avoid` para
+ * que nunca quede partida entre dos columnas.
+ */
+.mosaic-wall > * {
+  break-inside: avoid;
+  margin-bottom: 0.875rem;
+  display: inline-block;
+  width: 100%;
+}
+.mosaic-card {
+  position: relative;
+  overflow: hidden;
+}
+.mosaic-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: var(--tile-accent, var(--accent));
+}
+:root[data-theme="dark"] .mosaic-card {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+:root[data-theme="light"] .mosaic-card {
+  box-shadow: 0 2px 10px rgba(32, 36, 43, 0.08);
+}
+
+/* Tarjeta/panel interactivo reutilizable (nació en Dashboard.tsx, ahora
+   también en los tableros de columnas de Habits.tsx y Library.tsx): leve
+   realce al pasar el mouse (comunica "esto es información viva") + entrada
+   escalonada al montar la página. */
+.panel-card {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.panel-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-2);
+}
+:root[data-theme="dark"] .panel-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="light"] .panel-card:hover {
+  box-shadow: 0 8px 24px rgba(32, 36, 43, 0.1);
+}
+@keyframes panel-card-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.panel-card-in {
+  animation: panel-card-in 420ms ease-out both;
+}
+
 /* Entrada sutil de la tarjeta de /welcome (Welcome.tsx). */
 @keyframes welcome-in {
   from { opacity: 0; transform: translateY(12px); }
@@ -83,6 +181,64 @@
 }
 .welcome-card {
   animation: welcome-in 480ms ease-out;
+}
+
+/*
+ * Vista de lectura de la Biblioteca (Library.tsx::LibraryReader). El pedido
+ * explícito fue "que no quiera dejar de leer": fondo con blur (en vez del
+ * overlay plano que había antes), entrada suave de la tarjeta, y una barra
+ * de progreso fija arriba que se llena con el scroll del contenido — el
+ * mismo patrón de apps de lectura (Medium/Pocket), no un modal cualquiera.
+ */
+@keyframes reader-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.reader-backdrop {
+  background: rgba(10, 10, 16, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: reader-backdrop-in 200ms ease-out both;
+}
+
+@keyframes reader-card-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.reader-card-in {
+  animation: reader-card-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reader-progress-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 60;
+  background: var(--border);
+}
+.reader-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 100ms ease-out;
+}
+
+/* Mismo tratamiento de scrollbar que .tracker-scroll, pero vertical y propio
+   de la vista de lectura (se usa en el contenedor que scrollea el modal). */
+.reader-scroll {
+  scrollbar-color: var(--accent) transparent;
+  scrollbar-width: thin;
+}
+.reader-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.reader-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.reader-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 9999px;
 }
 
 @media (prefers-reduced-motion: reduce) {
