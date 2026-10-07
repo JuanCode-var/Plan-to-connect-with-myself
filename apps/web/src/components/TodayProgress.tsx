@@ -1,5 +1,5 @@
 import type { CycleLogs } from "../api/tracking";
-import { HABIT_PRIORITY_COLORS, type HabitCategory } from "../domain";
+import { HABIT_PRIORITY_COLORS, type HabitPriorityLevel } from "../domain";
 import { isDateCountableForHabit, toDateOnlyISO } from "../lib/completion";
 import { todayISO } from "../lib/date";
 import { firstName } from "../lib/greeting";
@@ -7,26 +7,17 @@ import { calculatePerfectDayStreak } from "../lib/streak";
 import { useAuth } from "../lib/useAuth";
 import { FitnessRings, type FitnessRingData } from "./FitnessRings";
 import { FlameIcon } from "./FlameIcon";
+import { useCountUp } from "../lib/useCountUp";
 
 // Los 3 anillos muestran el progreso de HOY de cada NIVEL de prioridad, uno
-// a uno (ver HABIT_CATEGORY_PRIORITY en domain.ts) — no de categorías
-// sueltas: el externo es prioridad alta (PRIORIDAD_MAXIMA, lo primero que
-// hay que resolver en el día), el del medio es prioridad media (hábitos
-// base + condicionales + autoconocimiento), el interno es prioridad baja
-// (suplementos opcionales). Los colores son EXACTAMENTE HABIT_PRIORITY_COLORS
+// a uno — campo propio del hábito (`priority`), independiente de su
+// categoría (área de vida): el externo es prioridad alta, el del medio
+// media, el interno baja. Los colores son EXACTAMENTE HABIT_PRIORITY_COLORS
 // (no se inventan acá), los mismos que usa PriorityIcon en el resto de la app.
-const RING_GROUPS: Array<{ label: string; categories: HabitCategory[]; color: string }> = [
-  { label: "Prioridad alta", categories: ["PRIORIDAD_MAXIMA"], color: HABIT_PRIORITY_COLORS.ALTA },
-  {
-    label: "Prioridad media",
-    categories: ["HABITO_BASE", "CONDICIONAL", "AUTOCONOCIMIENTO"],
-    color: HABIT_PRIORITY_COLORS.MEDIA,
-  },
-  {
-    label: "Prioridad baja",
-    categories: ["SUPLEMENTO", "OPCIONAL"],
-    color: HABIT_PRIORITY_COLORS.BAJA,
-  },
+const RING_GROUPS: Array<{ label: string; priority: HabitPriorityLevel; color: string }> = [
+  { label: "Prioridad alta", priority: "ALTA", color: HABIT_PRIORITY_COLORS.ALTA },
+  { label: "Prioridad media", priority: "MEDIA", color: HABIT_PRIORITY_COLORS.MEDIA },
+  { label: "Prioridad baja", priority: "BAJA", color: HABIT_PRIORITY_COLORS.BAJA },
 ];
 
 function motivationalLine(done: number, total: number, name: string | undefined): string {
@@ -66,9 +57,7 @@ export function TodayProgress({ data }: { data: CycleLogs }) {
   const total = countableHabits.length;
 
   const groupStats = RING_GROUPS.map((group) => {
-    const habitsInGroup = countableHabits.filter((h) =>
-      group.categories.includes(h.category as HabitCategory),
-    );
+    const habitsInGroup = countableHabits.filter((h) => h.priority === group.priority);
     const doneInGroup = habitsInGroup.filter((h) => effectiveStatus(h.id, today) === "DONE").length;
     const totalInGroup = habitsInGroup.length;
     return { ...group, done: doneInGroup, total: totalInGroup };
@@ -80,18 +69,19 @@ export function TodayProgress({ data }: { data: CycleLogs }) {
   }));
 
   const perfectStreak = calculatePerfectDayStreak(data.habits, data.days, effectiveStatus, today);
+  const animatedDone = useCountUp(done);
 
   return (
     <div
-      className="flex flex-wrap items-center gap-6 rounded-xl border p-4"
+      className="panel-card-in flex flex-wrap items-center gap-6 rounded-xl border p-4"
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <FitnessRings rings={rings} />
 
       <div className="flex min-w-[220px] flex-1 flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs tracking-wide uppercase" style={{ color: "var(--text-2)" }}>
-            Progreso de hoy · {done}/{total}
+          <span className="font-mono-num text-xs tracking-wide uppercase" style={{ color: "var(--text-2)" }}>
+            Progreso de hoy · {animatedDone}/{total}
           </span>
           {perfectStreak >= 2 && (
             <span

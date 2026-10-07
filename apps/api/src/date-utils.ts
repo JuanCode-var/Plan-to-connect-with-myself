@@ -26,3 +26,21 @@ export function enumerateDaysISO(start: Date, end: Date): string[] {
   }
   return days;
 }
+
+/**
+ * Fecha de HOY en el calendario LOCAL del servidor ("YYYY-MM-DD"), nunca en
+ * UTC. Distinto de todo lo de arriba a propósito: esas funciones trabajan
+ * sobre fechas YA guardadas como medianoche UTC pura (HabitLog.date,
+ * Cycle.startDate/endDate) y deben seguir siendo UTC. Esta, en cambio,
+ * convierte el INSTANTE actual — hacerlo con `.toISOString()` (UTC) hace que
+ * "hoy" salte al día siguiente en zonas horarias detrás de UTC (ej. Colombia,
+ * UTC-5) durante buena parte de la noche local. Usa los getters LOCALES
+ * (getFullYear/getMonth/getDate), no los UTC — mismo criterio que
+ * apps/web/src/lib/date.ts::todayISO en el frontend.
+ */
+export function todayLocalISO(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

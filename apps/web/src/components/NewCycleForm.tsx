@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCreateCycle } from "../api/tracking";
+import { todayISO } from "../lib/date";
 import type { Cycle } from "../api/tracking";
 
 function toISODate(date: Date): string {
@@ -15,7 +16,10 @@ function addDaysISO(iso: string, days: number): string {
 
 /** Día siguiente al `endDate` del último ciclo existente, u hoy si no hay ninguno. */
 function suggestStartDate(cycles: Cycle[]): string {
-  if (cycles.length === 0) return toISODate(new Date());
+  // todayISO (lib/date.ts), no toISODate(new Date()): esta sí necesita el
+  // calendario LOCAL, no UTC — toISODate de acá arriba solo es correcto para
+  // fechas que ya son medianoche UTC pura (ver addDaysISO).
+  if (cycles.length === 0) return todayISO();
   const latestEndISO = cycles.reduce((latest, cycle) => {
     const end = cycle.endDate.slice(0, 10);
     return end > latest ? end : latest;
@@ -54,7 +58,7 @@ export function NewCycleForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded-xl border p-4"
+      className="panel-expand-in flex flex-col gap-3 rounded-xl border p-4"
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <h2 className="font-display font-semibold">Nuevo ciclo</h2>

@@ -67,7 +67,7 @@ export function ProfileMenu({
 
       {open && (
         <div
-          className="absolute right-0 z-30 mt-2 w-56 rounded-xl border p-3 shadow-lg"
+          className="popover-in absolute right-0 z-30 mt-2 w-56 rounded-xl border p-3 shadow-lg"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
           <div className="mb-2 flex items-center gap-2.5 border-b pb-2.5" style={{ borderColor: "var(--border)" }}>

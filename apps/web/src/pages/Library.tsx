@@ -1,7 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useCreateLibraryEntry, useDeleteLibraryEntry, useLibrary, type LibraryEntry } from "../api/library";
-import { LIBRARY_SECTION_COLORS, LIBRARY_SECTIONS, LIBRARY_SECTION_LABELS, type LibrarySection } from "../domain";
+import {
+  useCreateLibraryEntry,
+  useDeleteLibraryEntry,
+  useLibrary,
+  usePinLibraryEntry,
+  useUnpinLibraryEntry,
+  type LibraryEntry,
+} from "../api/library";
+import {
+  LIBRARY_SECTION_COLORS,
+  LIBRARY_SECTIONS,
+  LIBRARY_SECTION_LABELS,
+  PIN_DURATIONS,
+  PIN_DURATION_LABELS,
+  type LibrarySection,
+  type PinDuration,
+} from "../domain";
 import { SectionPager } from "../components/SectionPager";
+
+function isCurrentlyPinned(entry: LibraryEntry): boolean {
+  return !!entry.pinnedUntil && new Date(entry.pinnedUntil) > new Date();
+}
 
 const SECTION_HINT: Record<LibrarySection, string> = {
   LIBRO: "Libros recomendados — los curados por la app y los que quieras agregar vos.",
@@ -45,14 +64,99 @@ function cardPreview(entry: LibraryEntry): string | null {
     : entry.content;
 }
 
+/**
+ * Anclar una frase en /tracker: sin window.confirm (convención del proyecto,
+ * ver DeleteCycleButton.tsx), un panel propio para elegir cuánto tiempo se
+ * queda ahí. En flujo normal (no `absolute`): `.mosaic-card` tiene
+ * `overflow: hidden` (para recortar la franja de color de arriba) y un
+ * overlay absoluto quedaría cortado — este panel empuja la tarjeta más alta
+ * en vez de superponerse. No es una acción destructiva, por eso ancla al
+ * toque sin paso de confirmación extra; "Desanclar" da marcha atrás.
+ */
+function PinQuoteButton({
+  entry,
+  onPin,
+  onUnpin,
+  isPending,
+}: {
+  entry: LibraryEntry;
+  onPin: (id: string, duration: PinDuration) => void;
+  onUnpin: (id: string) => void;
+  isPending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const pinned = isCurrentlyPinned(entry);
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="text-xs font-semibold"
+        style={{ color: pinned ? "var(--accent)" : "var(--text-2)" }}
+      >
+        {pinned ? "📌 Anclada en Seguimiento" : "📌 Anclar en Seguimiento"}
+      </button>
+
+      {open && (
+        <div
+          className="panel-expand-in mt-2 rounded-xl border p-3"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+            Ver en Seguimiento durante…
+          </p>
+          <div className="mt-2 flex flex-col gap-1">
+            {PIN_DURATIONS.map((duration) => (
+              <button
+                key={duration}
+                type="button"
+                disabled={isPending}
+                onClick={() => {
+                  onPin(entry.id, duration);
+                  setOpen(false);
+                }}
+                className="rounded-lg px-2 py-1.5 text-left text-xs disabled:opacity-60"
+                style={{ background: "var(--bg)", color: "var(--text)" }}
+              >
+                {PIN_DURATION_LABELS[duration]}
+              </button>
+            ))}
+          </div>
+          {pinned && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => {
+                onUnpin(entry.id);
+                setOpen(false);
+              }}
+              className="mt-2 text-xs underline disabled:opacity-60"
+              style={{ color: "var(--text-2)" }}
+            >
+              Desanclar
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EntryTile({
   entry,
   onOpen,
   onDelete,
+  onPin,
+  onUnpin,
+  pinPending,
 }: {
   entry: LibraryEntry;
   onOpen: (entry: LibraryEntry) => void;
   onDelete: (id: string) => void;
+  onPin: (id: string, duration: PinDuration) => void;
+  onUnpin: (id: string) => void;
+  pinPending: boolean;
 }) {
   const label = entryListLabel(entry);
   const preview = cardPreview(entry);
@@ -97,6 +201,13 @@ function EntryTile({
           Leer →
         </p>
       </button>
+
+      {entry.section === "FRASE" && (
+        <div className="px-4 pb-4">
+          <PinQuoteButton entry={entry} onPin={onPin} onUnpin={onUnpin} isPending={pinPending} />
+        </div>
+      )}
+
       {entry.source === "USER" && (
         <button
           type="button"
@@ -375,6 +486,8 @@ function LibrarySectionPanel({
 }) {
   const { data: entries, isLoading, isError } = useLibrary(section);
   const deleteEntry = useDeleteLibraryEntry();
+  const pinEntry = usePinLibraryEntry();
+  const unpinEntry = useUnpinLibraryEntry();
   const [showForm, setShowForm] = useState(false);
   // Cada sección arranca mostrando solo algunas entradas (ver "Ver más"
   // abajo): con las 63 frases de entrada, mostrar la biblioteca curada
@@ -419,7 +532,15 @@ function LibrarySectionPanel({
 
       <ul className="mosaic-wall columns-1 sm:columns-2 lg:columns-3 xl:columns-4">
         {visibleEntries?.map((entry) => (
-          <EntryTile key={entry.id} entry={entry} onOpen={onOpenEntry} onDelete={(id) => deleteEntry.mutate(id)} />
+          <EntryTile
+            key={entry.id}
+            entry={entry}
+            onOpen={onOpenEntry}
+            onDelete={(id) => deleteEntry.mutate(id)}
+            onPin={(id, duration) => pinEntry.mutate({ id, duration })}
+            onUnpin={(id) => unpinEntry.mutate(id)}
+            pinPending={pinEntry.isPending || unpinEntry.isPending}
+          />
         ))}
       </ul>
 

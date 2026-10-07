@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Habits } from './pages/Habits'
 import { Journal } from './pages/Journal'
 import { Library } from './pages/Library'
+import { Metas } from './pages/Metas'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Tracker } from './pages/Tracker'
@@ -20,6 +21,7 @@ function App() {
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate to="/tracker" replace />} />
           <Route path="/tracker" element={<Tracker />} />
+          <Route path="/metas" element={<Metas />} />
           <Route path="/habits" element={<Habits />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/dashboard" element={<Dashboard />} />

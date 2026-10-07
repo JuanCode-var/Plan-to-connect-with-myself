@@ -1,4 +1,5 @@
-import type { LogStatus } from "../domain";
+import type { HabitMoment, LogStatus } from "../domain";
+import { addDaysISO } from "./date";
 
 /**
  * % de cumplimiento = DONE / (DONE + PENDING), excluyendo `NA`. Si el
@@ -31,6 +32,19 @@ export function toDateOnlyISO(date: string): string {
  */
 export function isDateCountableForHabit(habitCreatedAt: string, dateISO: string): boolean {
   return dateISO >= toDateOnlyISO(habitCreatedAt);
+}
+
+/**
+ * Un día se "cierra" (deja de poder marcarse) al día siguiente de esa fecha
+ * para el resto de los hábitos, pero para los de NOCHE se da un día extra de
+ * margen: recién se cierran dos días después. Motivo: un hábito nocturno (ej.
+ * "Reservar ventana de sueño 7-9h") se decide al despertar al día SIGUIENTE,
+ * no a medianoche — cerrarlo el mismo día que cierra todo lo demás obligaría
+ * a marcarlo antes de saber si de verdad se cumplió.
+ */
+export function isDateLockedForHabit(habitMoment: HabitMoment, dateISO: string, todayISO: string): boolean {
+  const cutoff = habitMoment === "NOCHE" ? addDaysISO(todayISO, -1) : todayISO;
+  return dateISO < cutoff;
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { subscribeToast } from "../lib/toast";
 
-type ToastItem = { id: string; message: string };
+type ToastItem = { id: string; message: string; leaving: boolean };
 
 export function ToastHost() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -9,9 +9,9 @@ export function ToastHost() {
   useEffect(() => {
     return subscribeToast((message) => {
       const id = `${Date.now()}-${Math.random()}`;
-      setToasts((prev) => [...prev, { id, message }]);
+      setToasts((prev) => [...prev, { id, message, leaving: false }]);
       window.setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
+        setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
       }, 4000);
     });
   }, []);
@@ -24,7 +24,10 @@ export function ToastHost() {
         <div
           key={t.id}
           role="status"
-          className="rounded-md bg-black/90 px-4 py-2 text-center text-sm text-white shadow-lg"
+          className={`${t.leaving ? "toast-out" : "toast-in"} rounded-md bg-black/90 px-4 py-2 text-center text-sm text-white shadow-lg`}
+          onAnimationEnd={() => {
+            if (t.leaving) setToasts((prev) => prev.filter((x) => x.id !== t.id));
+          }}
         >
           {t.message}
         </div>

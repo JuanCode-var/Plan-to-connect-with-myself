@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCycleLogs, useCycles } from "../api/tracking";
+import { usePinnedQuote, useUnpinLibraryEntry } from "../api/library";
 import { CycleSelector } from "../components/CycleSelector";
 import { DeleteCycleButton } from "../components/DeleteCycleButton";
 import { NewCycleForm } from "../components/NewCycleForm";
+import { PinnedQuoteBanner } from "../components/PinnedQuoteBanner";
 import { TrackerMatrix } from "../components/TrackerMatrix";
 import { TodayProgress } from "../components/TodayProgress";
 import { ToastHost } from "../components/ToastHost";
 import { todayISO } from "../lib/date";
 
 export function Tracker() {
+  const { data: pinnedQuote } = usePinnedQuote();
+  const unpinQuote = useUnpinLibraryEntry();
   const { data: cycles, isLoading: cyclesLoading, isError: cyclesError } = useCycles();
   // undefined = "sin preferencia explícita todavía": el ciclo activo por
   // defecto se deriva en cada render (ver effectiveCycleId más abajo) en vez
@@ -76,6 +80,10 @@ export function Tracker() {
             </button>
           </div>
         </div>
+
+        {pinnedQuote && (
+          <PinnedQuoteBanner quote={pinnedQuote} onUnpin={() => unpinQuote.mutate(pinnedQuote.id)} />
+        )}
 
         {showNewCycleForm && (
           <NewCycleForm

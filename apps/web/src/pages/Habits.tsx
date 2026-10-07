@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useHabits } from "../api/habits";
+import { closestCenter, DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, rectSortingStrategy, SortableContext } from "@dnd-kit/sortable";
+import { useHabits, useReorderHabits } from "../api/habits";
 import { HABIT_MOMENTS, HABIT_MOMENT_LABELS, type HabitMoment } from "../domain";
 import { HabitCard } from "../components/HabitCard";
 import { HabitForm } from "../components/HabitForm";
@@ -7,7 +9,28 @@ import { SectionPager } from "../components/SectionPager";
 import { SupplementWarnings } from "../components/SupplementWarnings";
 import type { Habit } from "../api/habits";
 
+/**
+ * Orden elegido a mano (arrastrar y soltar, ver HabitCard.tsx) en vez de
+ * fijo por fecha de creación. Grilla en vez del mosaico de columnas CSS que
+ * usan Biblioteca/Diario: con "columns" el orden visual no es fila por fila
+ * sino columna por columna, lo que hace confuso arrastrar una tarjeta a la
+ * posición que se ve al lado — la grilla sí tiene orden predecible para
+ * dnd-kit. Cada DndContext es independiente por momento del día: arrastrar
+ * nunca mueve un hábito a otro momento, solo reordena dentro del mismo.
+ */
 function MomentPanel({ moment, habits }: { moment: HabitMoment; habits: Habit[] }) {
+  const reorderHabits = useReorderHabits();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const ids = habits.map((h) => h.id);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(active.id as string);
+    const newIndex = ids.indexOf(over.id as string);
+    reorderHabits.mutate(arrayMove(ids, oldIndex, newIndex));
+  }
+
   return (
     <section
       className="flex flex-col gap-3 rounded-2xl border p-4"
@@ -30,11 +53,15 @@ function MomentPanel({ moment, habits }: { moment: HabitMoment; habits: Habit[] 
           Sin hábitos en este momento.
         </p>
       ) : (
-        <ul className="mosaic-wall columns-1 sm:columns-2 lg:columns-3">
-          {habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} />
-          ))}
-        </ul>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={ids} strategy={rectSortingStrategy}>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {habits.map((habit, i) => (
+                <HabitCard key={habit.id} habit={habit} delay={Math.min(i, 10) * 40} />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
     </section>
   );

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
-import type { HabitCategory } from "../domain";
+import type { HabitCategory, HabitPriorityLevel } from "../domain";
 
 export type CycleSummary = {
   cycle: { id: string; name: string; startDate: string; endDate: string };
@@ -18,6 +18,7 @@ export type CycleSummary = {
     id: string;
     name: string;
     category: HabitCategory;
+    priority: HabitPriorityLevel;
     completionRate: number;
   }>;
   /** Solo los días ya transcurridos del ciclo (ver services/tracking.ts). */

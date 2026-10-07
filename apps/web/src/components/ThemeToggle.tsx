@@ -10,7 +10,7 @@ export function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () =>
       style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-2)" }}
     >
       {theme === "dark" ? (
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <svg key="sun" className="theme-icon-enter" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
           <circle cx="9" cy="9" r="3.2" />
           <line x1="9" y1="1.5" x2="9" y2="3.2" />
           <line x1="9" y1="14.8" x2="9" y2="16.5" />
@@ -22,7 +22,7 @@ export function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () =>
           <line x1="13.2" y1="4.8" x2="14.4" y2="3.6" />
         </svg>
       ) : (
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <svg key="moon" className="theme-icon-enter" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14.5 10.8A6 6 0 1 1 7.2 3.5a5 5 0 0 0 7.3 7.3z" />
         </svg>
       )}

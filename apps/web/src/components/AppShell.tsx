@@ -8,6 +8,7 @@ import { ProfileMenu } from "./ProfileMenu";
 import { Logo } from "./Logo";
 import { TimeOfDayIcon } from "./TimeOfDayIcon";
 import { AnimatedBackground } from "./AnimatedBackground";
+import { ScrollToTopButton } from "./ScrollToTopButton";
 
 function IconTracker() {
   return (
@@ -26,6 +27,16 @@ function IconHabits() {
       <path d="M10 3l7 3.5-7 3.5-7-3.5L10 3z" />
       <path d="M3 10.5l7 3.5 7-3.5" />
       <path d="M3 14l7 3.5 7-3.5" />
+    </svg>
+  );
+}
+
+function IconGoals() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10" cy="10" r="7" />
+      <circle cx="10" cy="10" r="3.6" />
+      <circle cx="10" cy="10" r="0.6" fill="currentColor" />
     </svg>
   );
 }
@@ -65,6 +76,7 @@ function IconLibrary() {
 
 const NAV_ITEMS: Array<{ to: string; label: string; Icon: ComponentType }> = [
   { to: "/tracker", label: "Seguimiento", Icon: IconTracker },
+  { to: "/metas", label: "Metas", Icon: IconGoals },
   { to: "/habits", label: "Hábitos", Icon: IconHabits },
   { to: "/journal", label: "Diario", Icon: IconJournal },
   { to: "/library", label: "Biblioteca", Icon: IconLibrary },
@@ -143,6 +155,7 @@ export function AppShell() {
         <main className="relative isolate min-w-0 flex-1 pb-16 md:pb-0" style={{ color: "var(--text)" }}>
           <AnimatedBackground scene={scene} />
           <Outlet />
+          <ScrollToTopButton />
         </main>
 
         <nav

@@ -241,6 +241,88 @@
   border-radius: 9999px;
 }
 
+/* Entrada/salida de ToastHost.tsx: antes aparecían/desaparecían de golpe
+   (push y filter directos al array). Salida separada de entrada (no solo
+   `reverse`) porque el toast se retira hacia abajo, no "deshace" la subida. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast-in {
+  animation: toast-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(6px); }
+}
+.toast-out {
+  animation: toast-out 160ms ease-in both;
+}
+
+/* Popovers flotantes que se abren desde un botón propio (ProfileMenu.tsx,
+   DeleteCycleButton.tsx): antes aparecían de golpe, sin relación visual con
+   el botón que los abre. `transform-origin` en la esquina del trigger (la
+   tarjeta nace "desde ahí", no desde el centro) — mismo curve que
+   `reader-card-in` para no sumar un tercer easing al vocabulario del app. */
+@keyframes popover-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.popover-in {
+  transform-origin: top right;
+  animation: popover-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Paneles de confirmación/selección que empujan el layout al aparecer
+   (HabitCard.tsx::DeleteConfirmPanel, Library.tsx: selector de duración de
+   anclado): antes saltaban a su alto final sin transición. Se montan y
+   desmontan con `{condición && <Panel/>}`, así que es una animación de
+   entrada por keyframes (como el resto del archivo), no una transición de
+   alto — la salida queda instantánea a propósito, es la reacción esperada
+   al tocar "Cancelar". */
+@keyframes panel-expand-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.panel-expand-in {
+  transform-origin: top;
+  animation: panel-expand-in 200ms ease-out both;
+}
+
+/* Lista de patrones detectados (InsightsPanel.tsx): aparecían de golpe al
+   terminar de cargar. Stagger via --i (índice), seteado inline por cada
+   <li> — mismo mecanismo que .panel-card-in en Dashboard.tsx. */
+@keyframes insight-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.insight-in {
+  animation: insight-in 280ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+/* Ícono sol/luna de ThemeToggle.tsx: el swap era instantáneo (el <svg>
+   saliente se desmonta y el entrante aparece de golpe en su lugar). El
+   `key` distinto en cada rama fuerza el remount para que esta animación de
+   entrada corra cada vez, no solo la primera. */
+.theme-icon-enter {
+  animation: theme-icon-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes theme-icon-in {
+  from { opacity: 0; transform: rotate(-15deg) scale(0.85); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+/* Botón flotante "volver arriba" (ScrollToTopButton.tsx): queda siempre
+   montado y transiciona opacity/transform según el estado `visible` en vez
+   de aparecer/desaparecer de golpe. */
+.scroll-top-btn {
+  transition: opacity 200ms ease-out, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-top-btn:hover {
+  transform: translateY(-2px) scale(1.05) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,10 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import {
-  HABIT_CATEGORY_PRIORITY,
   HABIT_MOMENTS,
   HABIT_MOMENT_LABELS,
   HABIT_PRIORITY_COLORS,
-  type HabitCategory,
   type HabitMoment,
   type LogStatus,
 } from "../domain";
@@ -15,6 +13,7 @@ import type { CycleLogs, HabitLog } from "../api/tracking";
 import {
   calculateCompletionRate,
   isDateCountableForHabit,
+  isDateLockedForHabit,
   toDateOnlyISO,
 } from "../lib/completion";
 import { calculateCurrentStreak } from "../lib/streak";
@@ -144,7 +143,11 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
   }
 
   return (
-    <div className="relative">
+    // `key={cycleId}` fuerza un remount (y por lo tanto la animación de
+    // entrada) cada vez que se cambia de ciclo con CycleSelector — sin esto,
+    // React reconciliaría el mismo <div> y la tabla cambiaría de contenido
+    // de golpe en vez de sentirse como una vista nueva.
+    <div key={cycleId} className="panel-card-in relative">
       <div className="mb-2 flex items-center justify-end gap-1.5">
         <button
           type="button"
@@ -191,6 +194,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
               </th>
               {days.map((date) => {
                 const isToday = date === today;
+                const isClosed = date < today;
                 return (
                   <th
                     key={date}
@@ -207,8 +211,17 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                       boxShadow: isToday ? "inset 0 0 0 2px var(--text)" : undefined,
                     }}
                   >
-                    <div className="font-mono-num font-semibold" style={{ color: "var(--text)" }}>
+                    <div
+                      className="font-mono-num flex items-center justify-center gap-0.5 font-semibold"
+                      style={{ color: "var(--text)" }}
+                      title={isClosed ? "Día cerrado: ya no se puede modificar" : undefined}
+                    >
                       {isToday ? "Hoy" : formatDayHeader(date)}
+                      {isClosed && (
+                        <span className="text-[10px] opacity-60" aria-hidden>
+                          🔒
+                        </span>
+                      )}
                     </div>
                   </th>
                 );
@@ -242,7 +255,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                     // reserva para el estado cumplido/pendiente de cada
                     // celda, no para la prioridad del hábito (esa se lee con
                     // el ícono de PriorityIcon, no con hue).
-                    const priorityLevel = HABIT_CATEGORY_PRIORITY[habit.category as HabitCategory];
+                    const priorityLevel = habit.priority;
                     const streak = calculateCurrentStreak(habit, days, effectiveStatus, today);
                     return (
                       <tr key={habit.id}>
@@ -278,6 +291,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                         {days.map((date) => {
                           const countable = isDateCountableForHabit(habit.createdAt, date);
                           const isToday = date === today;
+                          const isClosed = isDateLockedForHabit(moment, date, today);
                           return (
                             <td
                               key={date}
@@ -291,6 +305,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                               {countable ? (
                                 <StatusCell
                                   status={effectiveStatus(habit.id, date)}
+                                  locked={isClosed}
                                   onToggle={() => handleToggle(habit.id, date)}
                                   onOpenNaMenu={(x, y) =>
                                     setNaMenu({ habitId: habit.id, date, x, y })
@@ -366,10 +381,12 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
 
 function StatusCell({
   status,
+  locked,
   onToggle,
   onOpenNaMenu,
 }: {
   status: LogStatus;
+  locked: boolean;
   onToggle: () => void;
   onOpenNaMenu: (x: number, y: number) => void;
 }) {
@@ -402,6 +419,7 @@ function StatusCell({
   }
 
   function handleTouchStart(e: React.TouchEvent<HTMLButtonElement>) {
+    if (locked) return;
     longPressTriggered.current = false;
     const touch = e.touches[0];
     const x = touch.clientX;
@@ -423,6 +441,7 @@ function StatusCell({
   }
 
   function handleClick() {
+    if (locked) return;
     if (longPressTriggered.current) {
       longPressTriggered.current = false;
       return;
@@ -432,6 +451,7 @@ function StatusCell({
 
   function handleContextMenu(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
+    if (locked) return;
     onOpenNaMenu(e.clientX, e.clientY);
   }
 
@@ -440,16 +460,22 @@ function StatusCell({
       {celebrating && <span className="cell-burst" aria-hidden />}
       <button
         type="button"
+        disabled={locked}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={clearLongPressTimer}
         onTouchMove={clearLongPressTimer}
-        aria-label={`Estado: ${statusLabel(status)}. Clic para alternar cumplido/pendiente.`}
-        className={`relative flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold leading-none transition-transform hover:scale-110 active:scale-95 ${celebrating ? "cell-pop" : ""} ${statusStyles(status)}`}
+        title={locked ? "Día cerrado: ya no se puede modificar" : undefined}
+        aria-label={
+          locked
+            ? `Estado: ${statusLabel(status)}. Día cerrado, no se puede modificar.`
+            : `Estado: ${statusLabel(status)}. Clic para alternar cumplido/pendiente.`
+        }
+        className={`relative flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold leading-none transition-transform ${celebrating ? "cell-pop" : ""} ${locked ? "cursor-default" : "hover:scale-110 active:scale-95"} ${statusStyles(status)}`}
       >
-        {status === "DONE" ? "✓" : status === "NA" ? "—" : ""}
+        {status === "DONE" ? "✓" : status === "NA" ? "—" : "–"}
       </button>
     </span>
   );
@@ -468,7 +494,7 @@ function statusStyles(status: LogStatus): string {
     case "NA":
       return "border-black/20 bg-black/15 text-black/50";
     default:
-      return "border-black/40 bg-white/40 text-transparent";
+      return "border-black/40 bg-white/40 text-black/50";
   }
 }
 

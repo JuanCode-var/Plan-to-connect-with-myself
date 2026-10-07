@@ -15,9 +15,11 @@ datasource db {
 // mismo contrato que consume el frontend: cualquier cambio a estos valores requiere
 // grep en apps/web/src y apps/api/src (ver reglas del guardian del schema).
 //
-// HabitCategory: PRIORIDAD_MAXIMA | SUPLEMENTO | OPCIONAL | HABITO_BASE | CONDICIONAL | AUTOCONOCIMIENTO
+// HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL (área de vida)
+// HabitPriority: ALTA | MEDIA | BAJA (urgencia, campo independiente de la categoría)
 // HabitMoment:   MANANA | DIA | NOCHE | CIERRE_DEL_DIA
 // LogStatus:     DONE | PENDING | NA
+// GoalStatus:    PENDIENTE | EN_PROGRESO | CUMPLIDA
 
 // User es intencionalmente independiente del resto del modelo (sin
 // relaciones a Habit/Cycle/HabitLog/EmotionalEntry): esta sigue siendo una
@@ -37,7 +39,8 @@ model Habit {
   name          String
   moment        String // HabitMoment: MANANA | DIA | NOCHE | CIERRE_DEL_DIA
   specification String
-  category      String // HabitCategory: PRIORIDAD_MAXIMA | SUPLEMENTO | OPCIONAL | HABITO_BASE | CONDICIONAL | AUTOCONOCIMIENTO
+  category      String // HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL
+  priority      String // HabitPriority: ALTA | MEDIA | BAJA
   sortOrder     Int
   active        Boolean    @default(true)
   createdAt     DateTime   @default(now())
@@ -51,6 +54,7 @@ model Cycle {
   endDate   DateTime
   createdAt DateTime   @default(now())
   logs      HabitLog[]
+  goals     Goal[]
 }
 
 model HabitLog {
@@ -77,6 +81,12 @@ model LibraryEntry {
   author    String?
   content   String
   createdAt DateTime @default(now())
+  // Frase anclada en /tracker hasta esta fecha/hora (instante exacto, no
+  // fecha pura como HabitLog.date: acá sí importa la hora porque "un día"
+  // significa 24hs desde que se ancla, no hasta medianoche). Solo una
+  // entrada puede estar anclada a la vez: al anclar una nueva se limpia el
+  // pinnedUntil de cualquier otra (ver POST /library/:id/pin).
+  pinnedUntil DateTime?
 
   @@index([section])
 }
@@ -97,7 +107,55 @@ model EmotionalEntry {
   // `knowledge` es un espacio más general para conocimientos/ideas del día
   // que no dependen de haber pasado por una situación emocional difícil.
   knowledge String?
+  // Tercera sección independiente del Diario (ver comentario de `knowledge`
+  // arriba, mismo criterio): lo que la persona agradece ese día, sin
+  // depender de un check-in emocional ni de una reflexión.
+  gratitude String?
   createdAt DateTime @default(now())
 
   @@index([date])
+}
+
+// Metas del ciclo activo. Modelo basado en la técnica de coaching de 5 fases
+// (ver Técnica de visualización y establecimiento de metas.txt) fusionada con
+// los 3 pasos de Brian Tracy para lograr metas (decidir con claridad, escribir
+// con fecha límite, listar y accionar los pasos todos los días):
+//   Fase 1 (exploración)      -> why
+//   Fase 2 (visualización)    -> visualization
+//   Fase 3 (meta SMART)       -> specification + targetDate
+//   Fase 4 (plan de acción)   -> GoalStep[] (Tracy paso 3: la lista de todo
+//                                 lo necesario, accionable día a día)
+//   Fase 5 (seguimiento/eval) -> status + followUpNotes + celebration
+model Goal {
+  id            String     @id @default(cuid())
+  cycleId       String
+  cycle         Cycle      @relation(fields: [cycleId], references: [id])
+  title         String
+  why           String?
+  visualization String?
+  specification String
+  targetDate    DateTime
+  status        String     @default("PENDIENTE") // GoalStatus: PENDIENTE | EN_PROGRESO | CUMPLIDA
+  followUpNotes String?
+  // Solo tiene sentido completo una vez que `status` = CUMPLIDA, pero no se
+  // fuerza a nivel de schema (la persona puede ir anotando ideas de cómo
+  // celebrar antes de llegar a la meta).
+  celebration   String?
+  sortOrder     Int
+  createdAt     DateTime   @default(now())
+  steps         GoalStep[]
+
+  @@index([cycleId])
+}
+
+model GoalStep {
+  id          String   @id @default(cuid())
+  goalId      String
+  goal        Goal     @relation(fields: [goalId], references: [id])
+  description String
+  done        Boolean  @default(false)
+  sortOrder   Int
+  createdAt   DateTime @default(now())
+
+  @@index([goalId])
 }

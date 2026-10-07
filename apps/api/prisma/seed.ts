@@ -4,20 +4,17 @@ import { seedLibrary } from "./seed-library-data";
 const prisma = new PrismaClient();
 
 // Contrato de valores (ver nota en schema.prisma: SQLite no soporta enums nativos
-// en Prisma, así que HabitMoment, HabitCategory y LogStatus se validan como String).
+// en Prisma, así que HabitMoment, HabitCategory, HabitPriority y LogStatus se
+// validan como String).
 // HabitMoment:   MANANA | DIA | NOCHE | CIERRE_DEL_DIA
-// HabitCategory: PRIORIDAD_MAXIMA | SUPLEMENTO | OPCIONAL | HABITO_BASE | CONDICIONAL | AUTOCONOCIMIENTO
+// HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL (área de vida)
+// HabitPriority: ALTA | MEDIA | BAJA (urgencia, campo independiente de la categoría)
 
 type SeedHabit = {
   name: string;
   moment: "MANANA" | "DIA" | "NOCHE" | "CIERRE_DEL_DIA";
-  category:
-    | "PRIORIDAD_MAXIMA"
-    | "SUPLEMENTO"
-    | "OPCIONAL"
-    | "HABITO_BASE"
-    | "CONDICIONAL"
-    | "AUTOCONOCIMIENTO";
+  category: "FISICO" | "ECONOMICO" | "MENTAL" | "EMOCIONAL" | "HABILIDADES" | "ESPIRITUAL";
+  priority: "ALTA" | "MEDIA" | "BAJA";
   specification: string;
 };
 
@@ -31,80 +28,92 @@ const habits: SeedHabit[] = [
   {
     name: "Luz natural al despertar",
     moment: "MANANA",
-    category: "HABITO_BASE",
+    category: "FISICO",
+    priority: "MEDIA",
     specification:
       "Exponerte a luz natural (ventana o exterior) durante los primeros 30 minutos después de despertar.",
   },
   {
     name: "Creatina monohidratada",
     moment: "MANANA",
-    category: "SUPLEMENTO",
+    category: "FISICO",
+    priority: "BAJA",
     specification: "Tomar 3 g de creatina monohidratada con el desayuno.",
   },
   {
     name: "Melena de león",
     moment: "MANANA",
-    category: "OPCIONAL",
+    category: "FISICO",
+    priority: "BAJA",
     specification:
       "Tomar la dosis indicada de melena de león (opcional, evidencia limitada en humanos).",
   },
   {
     name: "Levadura de cerveza",
     moment: "MANANA",
-    category: "OPCIONAL",
+    category: "FISICO",
+    priority: "BAJA",
     specification:
       "Tomar la dosis indicada de levadura de cerveza (opcional, evidencia limitada en humanos).",
   },
   {
     name: "Cero apuestas",
     moment: "DIA",
-    category: "PRIORIDAD_MAXIMA",
+    category: "ECONOMICO",
+    priority: "ALTA",
     specification:
       "No realizar ninguna apuesta en todo el día, en ninguna plataforma ni modalidad.",
   },
   {
     name: "Cero alcohol",
     moment: "DIA",
-    category: "PRIORIDAD_MAXIMA",
+    category: "FISICO",
+    priority: "ALTA",
     specification: "No consumir alcohol en todo el día, en ninguna cantidad.",
   },
   {
     name: "Entrenamiento o movimiento",
     moment: "DIA",
-    category: "HABITO_BASE",
+    category: "FISICO",
+    priority: "MEDIA",
     specification:
       "Realizar al menos una sesión de entrenamiento o movimiento físico durante el día.",
   },
   {
     name: "Bloque de estudio",
     moment: "DIA",
-    category: "HABITO_BASE",
+    category: "HABILIDADES",
+    priority: "MEDIA",
     specification: "Cumplir el bloque de estudio planificado para el día.",
   },
   {
     name: "Preparar el sueño",
     moment: "NOCHE",
-    category: "HABITO_BASE",
+    category: "FISICO",
+    priority: "MEDIA",
     specification:
       "Preparar el ambiente para dormir: reducir pantallas y luz artificial antes de acostarte.",
   },
   {
     name: "Reservar ventana de sueño 7-9h",
     moment: "NOCHE",
-    category: "HABITO_BASE",
+    category: "FISICO",
+    priority: "MEDIA",
     specification: "Reservar una ventana de 7 a 9 horas para dormir esta noche.",
   },
   {
     name: "Melatonina condicional",
     moment: "NOCHE",
-    category: "CONDICIONAL",
+    category: "FISICO",
+    priority: "MEDIA",
     specification:
       "Tomar melatonina solo si es necesario; no combinar con alcohol ni usar para compensar trasnochos.",
   },
   {
     name: "Registro emocional y autoconocimiento",
     moment: "CIERRE_DEL_DIA",
-    category: "AUTOCONOCIMIENTO",
+    category: "EMOCIONAL",
+    priority: "MEDIA",
     specification:
       "Completar el registro emocional del día en /journal como cierre del día.",
   },
@@ -118,6 +127,7 @@ async function main() {
         name: habit.name,
         moment: habit.moment,
         category: habit.category,
+        priority: habit.priority,
         specification: habit.specification,
         sortOrder: i + 1,
         active: true,

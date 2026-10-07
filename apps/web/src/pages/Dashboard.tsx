@@ -4,12 +4,13 @@ import type { HabitLog } from "../api/tracking";
 import { useCycleComparison, useCycleSummary } from "../api/dashboard";
 import { CycleSelector } from "../components/CycleSelector";
 import { HabitCompletionBarChart } from "../components/HabitCompletionBarChart";
+import { InsightsPanel } from "../components/InsightsPanel";
 import { DailyTrendLineChart } from "../components/DailyTrendLineChart";
 import { CycleComparisonChart } from "../components/CycleComparisonChart";
 import { ProgressRing } from "../components/ProgressRing";
 import { FlameIcon } from "../components/FlameIcon";
 import { SectionPager } from "../components/SectionPager";
-import { HABIT_CATEGORY_LABELS, HABIT_CATEGORY_PRIORITY, HABIT_PRIORITY_COLORS, type HabitCategory, type LogStatus } from "../domain";
+import { HABIT_CATEGORY_LABELS, HABIT_PRIORITY_COLORS, type HabitCategory, type HabitPriorityLevel, type LogStatus } from "../domain";
 import { toDateOnlyISO } from "../lib/completion";
 import { todayISO } from "../lib/date";
 import { firstName } from "../lib/greeting";
@@ -199,6 +200,8 @@ export function Dashboard() {
           )}
         </div>
 
+        <InsightsPanel />
+
         {cyclesLoading && <p style={{ color: "var(--text-2)" }}>Cargando ciclos…</p>}
         {cyclesError && <p className="text-red-500">No se pudieron cargar los ciclos.</p>}
         {!cyclesLoading && cycles && cycles.length === 0 && (
@@ -237,14 +240,14 @@ export function Dashboard() {
             {bestHabit && bestHabit.completionRate > 0 && (
               <Card
                 delay={60}
-                accent={HABIT_PRIORITY_COLORS[HABIT_CATEGORY_PRIORITY[bestHabit.category]]}
+                accent={HABIT_PRIORITY_COLORS[bestHabit.priority]}
                 className="flex items-center gap-3"
               >
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-bold"
                   style={{
-                    background: softTint(HABIT_PRIORITY_COLORS[HABIT_CATEGORY_PRIORITY[bestHabit.category]]),
-                    color: HABIT_PRIORITY_COLORS[HABIT_CATEGORY_PRIORITY[bestHabit.category]],
+                    background: softTint(HABIT_PRIORITY_COLORS[bestHabit.priority]),
+                    color: HABIT_PRIORITY_COLORS[bestHabit.priority],
                   }}
                 >
                   ★
@@ -340,4 +343,4 @@ const CHART_SECTION_LABELS: Record<ChartSection, string> = {
   comparison: "Comparación entre ciclos",
 };
 
-type CycleSummaryHabit = { id: string; name: string; category: HabitCategory; completionRate: number };
+type CycleSummaryHabit = { id: string; name: string; category: HabitCategory; priority: HabitPriorityLevel; completionRate: number };

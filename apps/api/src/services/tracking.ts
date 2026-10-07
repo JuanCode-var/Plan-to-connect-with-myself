@@ -1,6 +1,7 @@
 // Cálculo de % de cumplimiento y agrupaciones fila/columna para la matriz de
 // /tracker. Reutilizado por apps/api/src/routes/cycles.ts y, más adelante, por
 // el dashboard (sección 6) — por eso vive acá y no dentro de routes/cycles.ts.
+import { todayLocalISO } from "../date-utils";
 
 /**
  * % de cumplimiento = DONE / (DONE + PENDING). Las celdas `NA` (o no contables,
@@ -113,7 +114,11 @@ export function getActiveCycle<T extends CycleForActive>(
 ): T | undefined {
   if (cycles.length === 0) return undefined;
 
-  const todayISO = toDateOnlyISO(today);
+  // `today` es el instante actual (no una fecha ya guardada): usa el
+  // calendario LOCAL (todayLocalISO), no UTC — ver su comentario en
+  // date-utils.ts. `c.endDate` sigue con toDateOnlyISO porque esas SÍ son
+  // fechas puras a medianoche UTC guardadas en la base.
+  const todayISO = todayLocalISO(today);
   const upcoming = cycles.filter((c) => toDateOnlyISO(c.endDate) >= todayISO);
 
   const pool = upcoming.length > 0 ? upcoming : cycles;

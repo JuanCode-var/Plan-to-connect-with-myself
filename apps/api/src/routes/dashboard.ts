@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../db";
-import { enumerateDaysISO } from "../date-utils";
+import { enumerateDaysISO, todayLocalISO } from "../date-utils";
 import {
   calculateCompletionRate,
   calculateCompletionRateByDay,
@@ -120,13 +120,14 @@ router.get("/:cycleId", async (req, res) => {
     id: habit.id,
     name: habit.name,
     category: habit.category,
+    priority: habit.priority,
     completionRate: byHabitRates[habit.id],
   }));
 
   // Tendencia diaria: recortada a los días ya transcurridos si el ciclo activo
   // termina en el futuro — nunca se rellenan los días faltantes con 0%, se
   // omiten directamente del arreglo.
-  const todayISO = toDateOnlyISO(new Date());
+  const todayISO = todayLocalISO();
   const elapsedDays = days.filter((day) => day <= todayISO);
   const byDayRates = calculateCompletionRateByDay(habits, elapsedDays, logs);
   const byDay = elapsedDays.map((day) => ({

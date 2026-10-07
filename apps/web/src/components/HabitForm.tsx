@@ -4,15 +4,19 @@ import {
   HABIT_CATEGORY_LABELS,
   HABIT_MOMENTS,
   HABIT_MOMENT_LABELS,
+  HABIT_PRIORITY_LEVELS,
+  HABIT_PRIORITY_LABELS,
   type HabitCategory,
   type HabitMoment,
+  type HabitPriorityLevel,
 } from "../domain";
 import { useCreateHabit } from "../api/habits";
 
 export function HabitForm({ onCreated }: { onCreated?: () => void }) {
   const [name, setName] = useState("");
   const [moment, setMoment] = useState<HabitMoment>("MANANA");
-  const [category, setCategory] = useState<HabitCategory>("HABITO_BASE");
+  const [category, setCategory] = useState<HabitCategory>("FISICO");
+  const [priority, setPriority] = useState<HabitPriorityLevel>("MEDIA");
   const [specification, setSpecification] = useState("");
   const createHabit = useCreateHabit();
 
@@ -20,7 +24,7 @@ export function HabitForm({ onCreated }: { onCreated?: () => void }) {
     e.preventDefault();
     if (!name.trim() || !specification.trim()) return;
     createHabit.mutate(
-      { name: name.trim(), moment, category, specification: specification.trim() },
+      { name: name.trim(), moment, category, priority, specification: specification.trim() },
       {
         onSuccess: () => {
           setName("");
@@ -34,7 +38,7 @@ export function HabitForm({ onCreated }: { onCreated?: () => void }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded-xl border p-4"
+      className="panel-expand-in flex flex-col gap-3 rounded-xl border p-4"
       style={{ background: "var(--surface)", borderColor: "var(--border)" }}
     >
       <h2 className="font-display font-semibold">Nuevo hábito</h2>
@@ -77,6 +81,22 @@ export function HabitForm({ onCreated }: { onCreated?: () => void }) {
           {HABIT_CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {HABIT_CATEGORY_LABELS[c]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm" style={{ color: "var(--text-2)" }}>
+        Prioridad
+        <select
+          className="rounded-lg border p-2"
+          style={{ background: "var(--bg)", borderColor: "var(--border)", color: "var(--text)" }}
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as HabitPriorityLevel)}
+        >
+          {HABIT_PRIORITY_LEVELS.map((p) => (
+            <option key={p} value={p}>
+              {HABIT_PRIORITY_LABELS[p]}
             </option>
           ))}
         </select>

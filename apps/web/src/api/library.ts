@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 import { showToast } from "../lib/toast";
-import type { LibrarySection } from "../domain";
+import type { LibrarySection, PinDuration } from "../domain";
 
 export type LibraryEntry = {
   id: string;
@@ -11,6 +11,7 @@ export type LibraryEntry = {
   author: string | null;
   content: string;
   createdAt: string;
+  pinnedUntil: string | null;
 };
 
 export function useLibrary(section?: LibrarySection) {
@@ -47,6 +48,39 @@ export function useDeleteLibraryEntry() {
     mutationFn: (id: string) => apiFetch<void>(`/library/${id}`, { method: "DELETE" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library"] }),
     onError: () => showToast("No se pudo eliminar la entrada."),
+  });
+}
+
+/**
+ * Frase anclada vigente para /tracker (o null si no hay ninguna). Mismo
+ * prefijo de queryKey que useLibrary(["library", ...]) a propósito: así
+ * invalidar ["library"] (crear/borrar/anclar una entrada) refresca esto
+ * también, sin tener que listar cada queryKey a mano en cada mutación.
+ */
+export function usePinnedQuote() {
+  return useQuery({
+    queryKey: ["library", "pinned"],
+    queryFn: () => apiFetch<LibraryEntry | null>("/library/pinned"),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function usePinLibraryEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, duration }: { id: string; duration: PinDuration }) =>
+      apiFetch<LibraryEntry>(`/library/${id}/pin`, { method: "POST", body: JSON.stringify({ duration }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library"] }),
+    onError: () => showToast("No se pudo anclar la frase."),
+  });
+}
+
+export function useUnpinLibraryEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<LibraryEntry>(`/library/${id}/unpin`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library"] }),
+    onError: () => showToast("No se pudo desanclar la frase."),
   });
 }
 

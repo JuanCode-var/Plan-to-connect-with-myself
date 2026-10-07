@@ -1,11 +1,13 @@
 /** Saludo según la hora local del dispositivo — sin vueltas de huso horario
  * de servidor: la hora que importa es la de la persona frente a la
- * pantalla. */
+ * pantalla. Corte de "noche" en las 18 (no 20): cerca del ecuador (Colombia)
+ * anochece sobre esa hora todo el año, así que a las 20 ya hacía rato que
+ * era de noche en la realidad — "Buenas tardes" se sentía fuera de lugar. */
 export function timeOfDayGreeting(date: Date = new Date()): string {
   const hour = date.getHours();
   if (hour < 6) return "Buenas noches";
   if (hour < 12) return "Buenos días";
-  if (hour < 20) return "Buenas tardes";
+  if (hour < 18) return "Buenas tardes";
   return "Buenas noches";
 }
 
@@ -22,7 +24,7 @@ export function timeOfDayVariant(date: Date = new Date()): TimeOfDayVariant {
   const hour = date.getHours();
   if (hour < 6) return "moon";
   if (hour < 12) return "sun";
-  if (hour < 20) return "sunset";
+  if (hour < 18) return "sunset";
   return "moon";
 }
 

@@ -1,28 +1,38 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { GratitudeForm } from "../components/GratitudeForm";
 import { JournalForm } from "../components/JournalForm";
-import { JournalList } from "../components/JournalList";
+import { JournalHistoryModal, type JournalHistoryKind } from "../components/JournalHistoryModal";
 import { KnowledgeForm } from "../components/KnowledgeForm";
-import { KnowledgeList } from "../components/KnowledgeList";
 import { SectionPager } from "../components/SectionPager";
-import type { Emotion } from "../domain";
 
-const JOURNAL_SECTIONS = ["emotion", "knowledge"] as const;
+const JOURNAL_SECTIONS = ["emotion", "knowledge", "gratitude"] as const;
 type JournalSection = (typeof JOURNAL_SECTIONS)[number];
 
 const JOURNAL_SECTION_LABELS: Record<JournalSection, string> = {
   emotion: "Registro emocional",
   knowledge: "Conocimientos y reflexiones",
+  gratitude: "Gratitud",
 };
+
+function ViewHistoryButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="self-start rounded-lg border px-3 py-1.5 text-sm font-semibold"
+      style={{ borderColor: "var(--border)", color: "var(--accent)" }}
+    >
+      {label} →
+    </button>
+  );
+}
 
 export function Journal() {
   const [searchParams] = useSearchParams();
   const initialDate = searchParams.get("date") ?? undefined;
   const [section, setSection] = useState<JournalSection>("emotion");
-
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [emotion, setEmotion] = useState<Emotion | "">("");
+  const [historyOpen, setHistoryOpen] = useState<JournalHistoryKind | null>(null);
 
   return (
     <div className="min-h-full px-4 py-6 sm:px-8 sm:py-8" style={{ color: "var(--text)" }}>
@@ -36,31 +46,35 @@ export function Journal() {
           onChange={setSection}
           panels={{
             emotion: (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4">
                 <JournalForm initialDate={initialDate} />
-                <JournalList
-                  from={from}
-                  to={to}
-                  emotion={emotion}
-                  onFromChange={setFrom}
-                  onToChange={setTo}
-                  onEmotionChange={setEmotion}
-                />
+                <ViewHistoryButton label="Ver todos los registros" onClick={() => setHistoryOpen("emotion")} />
               </div>
             ),
             knowledge: (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4">
                 <p className="text-sm" style={{ color: "var(--text-2)" }}>
                   Un espacio aparte del registro emocional: anotá lo que vas aprendiendo día a día, sin depender de
                   haber pasado por una situación difícil.
                 </p>
                 <KnowledgeForm initialDate={initialDate} />
-                <KnowledgeList />
+                <ViewHistoryButton label="Ver todas las reflexiones" onClick={() => setHistoryOpen("knowledge")} />
+              </div>
+            ),
+            gratitude: (
+              <div className="flex flex-col gap-4">
+                <p className="text-sm" style={{ color: "var(--text-2)" }}>
+                  Un espacio para anotar, todos los días, aquello que agradecés — grande o pequeño.
+                </p>
+                <GratitudeForm initialDate={initialDate} />
+                <ViewHistoryButton label="Ver todo lo que agradeciste" onClick={() => setHistoryOpen("gratitude")} />
               </div>
             ),
           }}
         />
       </div>
+
+      {historyOpen && <JournalHistoryModal kind={historyOpen} onClose={() => setHistoryOpen(null)} />}
     </div>
   );
 }

@@ -52,10 +52,16 @@ router.delete("/:id", async (req, res) => {
     return;
   }
 
-  // Borrar el ciclo se lleva sus HabitLog: fuera de su ciclo esos registros
-  // no tienen sentido propio (decisión explícita del usuario, no un default
-  // de Prisma — la relación no tiene onDelete: Cascade en el schema).
+  // Borrar el ciclo se lleva sus HabitLog y sus Goal (con los GoalStep de
+  // cada una): fuera de su ciclo ni unos ni otras tienen sentido propio
+  // (decisión explícita del usuario, no un default de Prisma — ninguna de
+  // estas relaciones tiene onDelete: Cascade en el schema).
+  const goalIds = (await prisma.goal.findMany({ where: { cycleId: cycle.id }, select: { id: true } })).map(
+    (g) => g.id,
+  );
   await prisma.$transaction([
+    prisma.goalStep.deleteMany({ where: { goalId: { in: goalIds } } }),
+    prisma.goal.deleteMany({ where: { cycleId: cycle.id } }),
     prisma.habitLog.deleteMany({ where: { cycleId: cycle.id } }),
     prisma.cycle.delete({ where: { id: cycle.id } }),
   ]);

@@ -12,10 +12,11 @@ export type JournalEntry = {
   decision: string | null;
   learning: string | null;
   knowledge: string | null;
+  gratitude: string | null;
   createdAt: string;
 };
 
-type JournalFilters = { from?: string; to?: string; emotion?: Emotion; kind?: "emotion" | "knowledge" };
+type JournalFilters = { from?: string; to?: string; emotion?: Emotion; kind?: "emotion" | "knowledge" | "gratitude" };
 
 function buildQuery(filters: JournalFilters): string {
   const params = new URLSearchParams();
@@ -43,6 +44,7 @@ type CreateJournalEntryInput = {
   decision?: string;
   learning?: string;
   knowledge?: string;
+  gratitude?: string;
 };
 
 export function useCreateJournalEntry() {

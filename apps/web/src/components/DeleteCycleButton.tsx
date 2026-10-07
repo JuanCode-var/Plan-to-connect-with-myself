@@ -60,7 +60,7 @@ export function DeleteCycleButton({
 
       {confirming && (
         <div
-          className="absolute right-0 z-30 mt-2 w-64 rounded-xl border p-3 shadow-lg"
+          className="popover-in absolute right-0 z-30 mt-2 w-64 rounded-xl border p-3 shadow-lg"
           style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
           <p className="text-sm" style={{ color: "var(--text)" }}>
