@@ -6,7 +6,6 @@ import { HABIT_MOMENTS, HABIT_MOMENT_LABELS, type HabitMoment } from "../domain"
 import { HabitCard } from "../components/HabitCard";
 import { HabitForm } from "../components/HabitForm";
 import { SectionPager } from "../components/SectionPager";
-import { SupplementWarnings } from "../components/SupplementWarnings";
 import type { Habit } from "../api/habits";
 
 /**
@@ -93,8 +92,6 @@ export function Habits() {
             {showForm ? "Cerrar" : "+ Nuevo hábito"}
           </button>
         </div>
-
-        <SupplementWarnings />
 
         {showForm && <HabitForm onCreated={() => setShowForm(false)} />}
 
