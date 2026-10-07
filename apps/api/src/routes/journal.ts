@@ -41,6 +41,7 @@ router.get("/", async (req, res) => {
   const kindFilter = kind && !emotion ? { [KIND_FIELD[kind]]: { not: null } } : {};
   const entries = await prisma.emotionalEntry.findMany({
     where: {
+      userId: req.userId!,
       ...(from || to
         ? {
             date: {
@@ -85,7 +86,7 @@ router.post("/", async (req, res) => {
   }
 
   const entry = await prisma.emotionalEntry.create({
-    data: { ...parsed.data, date: parseDateOnlyToUtcMidnight(parsed.data.date) },
+    data: { ...parsed.data, date: parseDateOnlyToUtcMidnight(parsed.data.date), userId: req.userId! },
   });
   res.status(201).json(entry);
 });

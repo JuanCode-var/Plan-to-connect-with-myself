@@ -5,13 +5,13 @@ import { AuthContext } from "./authContext";
 import { getAuthToken, setAuthToken } from "./authToken";
 
 /**
- * Única fuente de verdad de "quién entró" — no particiona hábitos/ciclos
- * por usuario (ver nota en prisma/schema.prisma sobre `User`), solo
- * identifica a la persona para personalizar saludos y copy motivacional
- * (AppShell, TodayProgress, TrackerMatrix). Al montar, si hay un token
- * guardado se valida contra GET /api/auth/me; si el token venció o es
- * inválido, se limpia en vez de dejar la app en un estado logueado a
- * medias.
+ * Única fuente de verdad de "quién entró" — identifica a la persona para
+ * personalizar saludos/copy motivacional (AppShell, TodayProgress,
+ * TrackerMatrix) Y para que el backend filtre cada hábito/ciclo/entrada del
+ * diario/meta por dueño (ver `requireAuth` middleware en apps/api/src;
+ * cada cuenta ve solo lo suyo). Al montar, si hay un token guardado se
+ * valida contra GET /api/auth/me; si el token venció o es inválido, se
+ * limpia en vez de dejar la app en un estado logueado a medias.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);

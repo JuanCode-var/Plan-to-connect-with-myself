@@ -6,8 +6,8 @@ import { getActiveCycle } from "../services/tracking";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
-  const cycles = await prisma.cycle.findMany({ orderBy: { startDate: "asc" } });
+router.get("/", async (req, res) => {
+  const cycles = await prisma.cycle.findMany({ where: { userId: req.userId! }, orderBy: { startDate: "asc" } });
   const activeCycle = getActiveCycle(cycles);
 
   // `isActive` es la única fuente de verdad de "cuál es el ciclo activo": el
@@ -40,13 +40,13 @@ router.post("/", async (req, res) => {
   }
 
   const cycle = await prisma.cycle.create({
-    data: { name: parsed.data.name, startDate, endDate },
+    data: { name: parsed.data.name, startDate, endDate, userId: req.userId! },
   });
   res.status(201).json(cycle);
 });
 
 router.delete("/:id", async (req, res) => {
-  const cycle = await prisma.cycle.findUnique({ where: { id: req.params.id } });
+  const cycle = await prisma.cycle.findFirst({ where: { id: req.params.id, userId: req.userId! } });
   if (!cycle) {
     res.status(404).json({ error: "Ciclo no encontrado" });
     return;
@@ -70,7 +70,7 @@ router.delete("/:id", async (req, res) => {
 });
 
 router.get("/:id/logs", async (req, res) => {
-  const cycle = await prisma.cycle.findUnique({ where: { id: req.params.id } });
+  const cycle = await prisma.cycle.findFirst({ where: { id: req.params.id, userId: req.userId! } });
   if (!cycle) {
     res.status(404).json({ error: "Ciclo no encontrado" });
     return;
@@ -79,7 +79,7 @@ router.get("/:id/logs", async (req, res) => {
   const days = enumerateDaysISO(cycle.startDate, cycle.endDate);
 
   const habits = await prisma.habit.findMany({
-    where: { active: true },
+    where: { active: true, userId: req.userId! },
     orderBy: { sortOrder: "asc" },
   });
 

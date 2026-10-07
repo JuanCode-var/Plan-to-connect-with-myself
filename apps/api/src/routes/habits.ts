@@ -5,9 +5,9 @@ import { habitCategorySchema, habitMomentSchema, habitPrioritySchema } from "../
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   const habits = await prisma.habit.findMany({
-    where: { active: true },
+    where: { active: true, userId: req.userId! },
     orderBy: { sortOrder: "asc" },
   });
   res.json(habits);
@@ -28,9 +28,12 @@ router.post("/", async (req, res) => {
     return;
   }
 
-  const last = await prisma.habit.findFirst({ orderBy: { sortOrder: "desc" } });
+  const last = await prisma.habit.findFirst({
+    where: { userId: req.userId! },
+    orderBy: { sortOrder: "desc" },
+  });
   const habit = await prisma.habit.create({
-    data: { ...parsed.data, sortOrder: (last?.sortOrder ?? 0) + 1, active: true },
+    data: { ...parsed.data, userId: req.userId!, sortOrder: (last?.sortOrder ?? 0) + 1, active: true },
   });
   res.status(201).json(habit);
 });
@@ -52,7 +55,10 @@ router.put("/reorder", async (req, res) => {
   }
 
   const { ids } = parsed.data;
-  const habits = await prisma.habit.findMany({ where: { id: { in: ids } } });
+  // `userId` en el filtro: además de traer los hábitos, esto verifica que
+  // TODOS pertenezcan a quien hace el pedido (si alguno es de otra cuenta,
+  // `habits.length` queda corto y se rechaza abajo).
+  const habits = await prisma.habit.findMany({ where: { id: { in: ids }, userId: req.userId! } });
   if (habits.length !== ids.length) {
     res.status(400).json({ error: "Alguno de los hábitos no existe" });
     return;
@@ -84,19 +90,18 @@ router.patch("/:id", async (req, res) => {
     return;
   }
 
-  try {
-    const habit = await prisma.habit.update({
-      where: { id: req.params.id },
-      data: parsed.data,
-    });
-    res.json(habit);
-  } catch {
+  const existing = await prisma.habit.findFirst({ where: { id: req.params.id, userId: req.userId! } });
+  if (!existing) {
     res.status(404).json({ error: "Hábito no encontrado" });
+    return;
   }
+
+  const habit = await prisma.habit.update({ where: { id: existing.id }, data: parsed.data });
+  res.json(habit);
 });
 
 router.delete("/:id", async (req, res) => {
-  const habit = await prisma.habit.findUnique({ where: { id: req.params.id } });
+  const habit = await prisma.habit.findFirst({ where: { id: req.params.id, userId: req.userId! } });
   if (!habit) {
     res.status(404).json({ error: "Hábito no encontrado" });
     return;

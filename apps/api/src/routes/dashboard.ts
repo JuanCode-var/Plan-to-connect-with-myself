@@ -68,12 +68,12 @@ function countTotals(statuses: string[]): { done: number; pending: number; na: n
   return { done, pending, na };
 }
 
-router.get("/compare", async (_req, res) => {
-  const cycles = await prisma.cycle.findMany({ orderBy: { startDate: "asc" } });
+router.get("/compare", async (req, res) => {
+  const cycles = await prisma.cycle.findMany({ where: { userId: req.userId! }, orderBy: { startDate: "asc" } });
   // Todos los hábitos (activos y pausados): un hábito pausado conserva su
   // historial y sigue contando en el dashboard histórico (habit-catalog spec,
   // Scenario "Pausar un hábito").
-  const habits = await prisma.habit.findMany();
+  const habits = await prisma.habit.findMany({ where: { userId: req.userId! } });
 
   const result = await Promise.all(
     cycles.map(async (cycle) => {
@@ -94,7 +94,7 @@ router.get("/compare", async (_req, res) => {
 });
 
 router.get("/:cycleId", async (req, res) => {
-  const cycle = await prisma.cycle.findUnique({ where: { id: req.params.cycleId } });
+  const cycle = await prisma.cycle.findFirst({ where: { id: req.params.cycleId, userId: req.userId! } });
   if (!cycle) {
     res.status(404).json({ error: "Ciclo no encontrado" });
     return;
@@ -103,7 +103,7 @@ router.get("/:cycleId", async (req, res) => {
   // Todos los hábitos (activos y pausados): un hábito pausado conserva su
   // historial y sigue contando en el dashboard histórico (habit-catalog spec,
   // Scenario "Pausar un hábito").
-  const habits = await prisma.habit.findMany({ orderBy: { sortOrder: "asc" } });
+  const habits = await prisma.habit.findMany({ where: { userId: req.userId! }, orderBy: { sortOrder: "asc" } });
 
   // Solo los HabitLog propios de este ciclo (por cycleId) — nunca se mezclan
   // logs de otro ciclo aunque las fechas se solapen.

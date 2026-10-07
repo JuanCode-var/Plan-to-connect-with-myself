@@ -7,7 +7,10 @@ import { goalStatusSchema } from "../domain";
 const router = Router();
 
 // GET /api/goals?cycleId=... — metas de un ciclo, con sus pasos ya
-// incluidos (evita un segundo viaje por cada tarjeta en /metas).
+// incluidos (evita un segundo viaje por cada tarjeta en /metas). `userId`
+// en el filtro alcanza para que no se devuelvan metas ajenas aunque alguien
+// pase el cycleId de otra cuenta (no hay fila de Goal que tenga ese
+// cycleId Y este userId a la vez).
 router.get("/", async (req, res) => {
   const cycleId = typeof req.query.cycleId === "string" ? req.query.cycleId : undefined;
   if (!cycleId) {
@@ -16,7 +19,7 @@ router.get("/", async (req, res) => {
   }
 
   const goals = await prisma.goal.findMany({
-    where: { cycleId },
+    where: { cycleId, userId: req.userId! },
     orderBy: { sortOrder: "asc" },
     include: { steps: { orderBy: { sortOrder: "asc" } } },
   });
@@ -39,7 +42,7 @@ router.post("/", async (req, res) => {
     return;
   }
 
-  const cycle = await prisma.cycle.findUnique({ where: { id: parsed.data.cycleId } });
+  const cycle = await prisma.cycle.findFirst({ where: { id: parsed.data.cycleId, userId: req.userId! } });
   if (!cycle) {
     res.status(400).json({ error: "Ciclo no encontrado" });
     return;
@@ -54,13 +57,14 @@ router.post("/", async (req, res) => {
   }
 
   const last = await prisma.goal.findFirst({
-    where: { cycleId: parsed.data.cycleId },
+    where: { cycleId: parsed.data.cycleId, userId: req.userId! },
     orderBy: { sortOrder: "desc" },
   });
 
   const goal = await prisma.goal.create({
     data: {
       cycleId: parsed.data.cycleId,
+      userId: req.userId!,
       title: parsed.data.title,
       why: parsed.data.why,
       visualization: parsed.data.visualization,
@@ -93,6 +97,12 @@ router.patch("/:id", async (req, res) => {
     return;
   }
 
+  const existing = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.userId! } });
+  if (!existing) {
+    res.status(404).json({ error: "Meta no encontrada" });
+    return;
+  }
+
   const { targetDate, ...rest } = parsed.data;
   let parsedTargetDate: Date | undefined;
   if (targetDate !== undefined) {
@@ -104,20 +114,16 @@ router.patch("/:id", async (req, res) => {
     }
   }
 
-  try {
-    const goal = await prisma.goal.update({
-      where: { id: req.params.id },
-      data: { ...rest, ...(parsedTargetDate ? { targetDate: parsedTargetDate } : {}) },
-      include: { steps: { orderBy: { sortOrder: "asc" } } },
-    });
-    res.json(goal);
-  } catch {
-    res.status(404).json({ error: "Meta no encontrada" });
-  }
+  const goal = await prisma.goal.update({
+    where: { id: existing.id },
+    data: { ...rest, ...(parsedTargetDate ? { targetDate: parsedTargetDate } : {}) },
+    include: { steps: { orderBy: { sortOrder: "asc" } } },
+  });
+  res.json(goal);
 });
 
 router.delete("/:id", async (req, res) => {
-  const goal = await prisma.goal.findUnique({ where: { id: req.params.id } });
+  const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.userId! } });
   if (!goal) {
     res.status(404).json({ error: "Meta no encontrada" });
     return;
@@ -143,7 +149,7 @@ router.post("/:id/steps", async (req, res) => {
     return;
   }
 
-  const goal = await prisma.goal.findUnique({ where: { id: req.params.id } });
+  const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.userId! } });
   if (!goal) {
     res.status(404).json({ error: "Meta no encontrada" });
     return;
@@ -162,6 +168,10 @@ router.post("/:id/steps", async (req, res) => {
 
 const updateStepSchema = z.object({ description: z.string().min(1), done: z.boolean() }).partial();
 
+// GoalStep no tiene `userId` propio (ver comentario en schema.prisma): el
+// dueño se verifica a través de su Goal, por eso estas dos rutas primero
+// buscan el paso filtrando por `goal: { userId }` antes de tocarlo — recién
+// ahí se sabe que es seguro mutarlo/borrarlo por su `id` solo.
 router.patch("/:id/steps/:stepId", async (req, res) => {
   const parsed = updateStepSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -169,24 +179,29 @@ router.patch("/:id/steps/:stepId", async (req, res) => {
     return;
   }
 
-  try {
-    const step = await prisma.goalStep.update({
-      where: { id: req.params.stepId },
-      data: parsed.data,
-    });
-    res.json(step);
-  } catch {
+  const existing = await prisma.goalStep.findFirst({
+    where: { id: req.params.stepId, goalId: req.params.id, goal: { userId: req.userId! } },
+  });
+  if (!existing) {
     res.status(404).json({ error: "Paso no encontrado" });
+    return;
   }
+
+  const step = await prisma.goalStep.update({ where: { id: existing.id }, data: parsed.data });
+  res.json(step);
 });
 
 router.delete("/:id/steps/:stepId", async (req, res) => {
-  try {
-    await prisma.goalStep.delete({ where: { id: req.params.stepId } });
-    res.status(204).send();
-  } catch {
+  const existing = await prisma.goalStep.findFirst({
+    where: { id: req.params.stepId, goalId: req.params.id, goal: { userId: req.userId! } },
+  });
+  if (!existing) {
     res.status(404).json({ error: "Paso no encontrado" });
+    return;
   }
+
+  await prisma.goalStep.delete({ where: { id: existing.id } });
+  res.status(204).send();
 });
 
 export default router;

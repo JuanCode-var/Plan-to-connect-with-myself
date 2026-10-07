@@ -120,6 +120,19 @@ const habits: SeedHabit[] = [
 ];
 
 async function main() {
+  // Cada hábito/ciclo necesita un dueño (`userId`, ver migración
+  // add_user_ownership): el seed ya no puede crearlos "al aire". No se crea
+  // una cuenta descartable acá (quedaría con una contraseña que nadie
+  // conoce, inútil para loguearse) — se usa la primera cuenta real que ya
+  // exista, registrada desde la app.
+  const user = await prisma.user.findFirst();
+  if (!user) {
+    console.error(
+      "No hay ninguna cuenta creada todavía. Registrate primero (POST /api/auth/register, o desde /register en la app) y volvé a correr el seed.",
+    );
+    process.exit(1);
+  }
+
   for (let i = 0; i < habits.length; i++) {
     const habit = habits[i];
     await prisma.habit.create({
@@ -131,6 +144,7 @@ async function main() {
         specification: habit.specification,
         sortOrder: i + 1,
         active: true,
+        userId: user.id,
       },
     });
   }
@@ -140,12 +154,13 @@ async function main() {
       name: "Ciclo 1",
       startDate: utcMidnight(2026, 9, 14),
       endDate: utcMidnight(2026, 10, 13),
+      userId: user.id,
     },
   });
 
   await seedLibrary(prisma);
 
-  console.log(`Seed completo: ${habits.length} hábitos, Ciclo 1 y la Biblioteca creados.`);
+  console.log(`Seed completo: ${habits.length} hábitos, Ciclo 1 y la Biblioteca creados para ${user.email}.`);
 }
 
 main()

@@ -5,13 +5,17 @@ import { librarySectionSchema, pinDurationSchema, type PinDuration } from "../do
 
 const router = Router();
 
-// GET /api/library[?section=LIBRO|FRASE|FILOSOFIA] — semilla curada + las
-// propias del usuario juntas (fuente "mixta", ver seed-library-data.ts). Sin
-// filtro devuelve las 3 secciones: la Biblioteca las agrupa en el cliente.
+// GET /api/library[?section=LIBRO|FRASE|FILOSOFIA] — semilla curada
+// (compartida entre TODAS las cuentas, `userId` NULL) + las propias de quien
+// pide (fuente "mixta", ver seed-library-data.ts). Sin filtro devuelve las 3
+// secciones: la Biblioteca las agrupa en el cliente.
 router.get("/", async (req, res) => {
   const sectionFilter = librarySectionSchema.safeParse(req.query.section);
   const entries = await prisma.libraryEntry.findMany({
-    where: sectionFilter.success ? { section: sectionFilter.data } : undefined,
+    where: {
+      OR: [{ userId: null }, { userId: req.userId! }],
+      ...(sectionFilter.success ? { section: sectionFilter.data } : {}),
+    },
     orderBy: [{ source: "asc" }, { createdAt: "asc" }],
   });
   res.json(entries);
@@ -44,7 +48,7 @@ router.post("/", async (req, res) => {
   }
 
   const entry = await prisma.libraryEntry.create({
-    data: { ...parsed.data, source: "USER" },
+    data: { ...parsed.data, source: "USER", userId: req.userId! },
   });
   res.status(201).json(entry);
 });
@@ -59,6 +63,12 @@ router.delete("/:id", async (req, res) => {
   // biblioteca base, igual que los 12 hábitos semilla no se reordenan.
   if (entry.source === "SEED") {
     res.status(403).json({ error: "No se puede eliminar contenido curado de la biblioteca" });
+    return;
+  }
+  // No es de quien pide: ni se confirma que existe (404 genérico, igual que
+  // si de verdad no existiera) ni se borra.
+  if (entry.userId !== req.userId) {
+    res.status(404).json({ error: "Entrada no encontrada" });
     return;
   }
 
@@ -77,7 +87,9 @@ const pinEntrySchema = z.object({ duration: pinDurationSchema });
 // POST /api/library/:id/pin — ancla esta frase en /tracker por la duración
 // elegida. Solo una entrada puede estar anclada a la vez: se limpia el
 // pinnedUntil de cualquier otra antes de fijar la nueva (ver comentario en
-// schema.prisma).
+// schema.prisma). A diferencia del resto de este archivo, pin/unpin quedan
+// SIN filtrar por `userId` a propósito: es un detalle de ambientación
+// compartida (la frase que se ve hoy en /tracker), no un dato privado.
 router.post("/:id/pin", async (req, res) => {
   const entry = await prisma.libraryEntry.findUnique({ where: { id: req.params.id } });
   if (!entry) {

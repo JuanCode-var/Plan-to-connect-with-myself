@@ -29,17 +29,18 @@ router.put("/:habitId/:date", async (req, res) => {
   const { habitId } = parsedParams.data;
   const date = parseDateOnlyToUtcMidnight(parsedParams.data.date);
 
-  const habit = await prisma.habit.findUnique({ where: { id: habitId } });
+  const habit = await prisma.habit.findFirst({ where: { id: habitId, userId: req.userId! } });
   if (!habit) {
     res.status(404).json({ error: "Hábito no encontrado" });
     return;
   }
 
-  // El log necesita cycleId: se busca el ciclo cuyo rango [startDate, endDate]
-  // cubre la fecha recibida. Si ninguno la cubre, no hay dónde persistir el
-  // estado (podría ser una fecha fuera de cualquier ciclo creado).
+  // El log necesita cycleId: se busca el ciclo (propio) cuyo rango
+  // [startDate, endDate] cubre la fecha recibida. Si ninguno la cubre, no
+  // hay dónde persistir el estado (podría ser una fecha fuera de cualquier
+  // ciclo creado).
   const cycle = await prisma.cycle.findFirst({
-    where: { startDate: { lte: date }, endDate: { gte: date } },
+    where: { startDate: { lte: date }, endDate: { gte: date }, userId: req.userId! },
   });
   if (!cycle) {
     res.status(400).json({ error: "Ningún ciclo cubre esa fecha" });

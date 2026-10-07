@@ -21,17 +21,24 @@ datasource db {
 // LogStatus:     DONE | PENDING | NA
 // GoalStatus:    PENDIENTE | EN_PROGRESO | CUMPLIDA
 
-// User es intencionalmente independiente del resto del modelo (sin
-// relaciones a Habit/Cycle/HabitLog/EmotionalEntry): esta sigue siendo una
-// app de una sola persona por instancia, no multi-tenant. La cuenta existe
-// para identificar "quién entra" y personalizar (nombre, saludo según hora,
-// felicitaciones), no para particionar los hábitos/ciclos por usuario.
+// Cada cuenta ve y edita SOLO sus propios datos (antes era una sola base
+// compartida entre cualquier cuenta que se loguee — ver `requireAuth`
+// middleware, que es lo que realmente hace cumplir esto en cada ruta; acá
+// en el schema solo se modela la columna). HabitLog y GoalStep NO tienen su
+// propio `userId`: su dueño se verifica a través de Habit/Cycle y Goal
+// respectivamente (siempre se llega a ellos pasando primero por el padre ya
+// validado), así se evita duplicar el dato y que se desincronice.
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  id               String           @id @default(cuid())
+  name             String
+  email            String           @unique
+  passwordHash     String
+  createdAt        DateTime         @default(now())
+  habits           Habit[]
+  cycles           Cycle[]
+  libraryEntries   LibraryEntry[]
+  emotionalEntries EmotionalEntry[]
+  goals            Goal[]
 }
 
 model Habit {
@@ -45,6 +52,10 @@ model Habit {
   active        Boolean    @default(true)
   createdAt     DateTime   @default(now())
   logs          HabitLog[]
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model Cycle {
@@ -55,6 +66,10 @@ model Cycle {
   createdAt DateTime   @default(now())
   logs      HabitLog[]
   goals     Goal[]
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model HabitLog {
@@ -85,10 +100,18 @@ model LibraryEntry {
   // fecha pura como HabitLog.date: acá sí importa la hora porque "un día"
   // significa 24hs desde que se ancla, no hasta medianoche). Solo una
   // entrada puede estar anclada a la vez: al anclar una nueva se limpia el
-  // pinnedUntil de cualquier otra (ver POST /library/:id/pin).
+  // pinnedUntil de cualquier otra (ver POST /library/:id/pin). Queda
+  // compartida entre cuentas a propósito (no se filtra por `userId`), a
+  // diferencia del resto de este campo.
   pinnedUntil DateTime?
+  // NULL = contenido curado por la app (SEED), visible para cualquier
+  // cuenta — no tiene sentido duplicarlo por usuario. Con valor = entrada
+  // propia (SEED nunca lo tiene) de esa cuenta, privada.
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@index([section])
+  @@index([userId])
 }
 
 model EmotionalEntry {
@@ -112,8 +135,11 @@ model EmotionalEntry {
   // depender de un check-in emocional ni de una reflexión.
   gratitude String?
   createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
 
   @@index([date])
+  @@index([userId])
 }
 
 // Metas del ciclo activo. Modelo basado en la técnica de coaching de 5 fases
@@ -144,8 +170,11 @@ model Goal {
   sortOrder     Int
   createdAt     DateTime   @default(now())
   steps         GoalStep[]
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
 
   @@index([cycleId])
+  @@index([userId])
 }
 
 model GoalStep {
