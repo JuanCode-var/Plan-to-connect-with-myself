@@ -91,7 +91,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
     if (next === "DONE") {
       const quote = randomLibraryEntry(quotes);
       if (quote) {
-        showToast(`✨ ${quote.content}${quote.author ? ` — ${quote.author}` : ""}`);
+        showToast(`${quote.content}${quote.author ? ` — ${quote.author}` : ""}`, "quote");
       }
     }
 

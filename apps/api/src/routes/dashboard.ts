@@ -75,10 +75,13 @@ router.get("/compare", async (req, res) => {
   // Scenario "Pausar un hábito").
   const habits = await prisma.habit.findMany({ where: { userId: req.userId! } });
 
+  const todayISOForCompare = todayLocalISO();
   const result = await Promise.all(
     cycles.map(async (cycle) => {
       const logs = await prisma.habitLog.findMany({ where: { cycleId: cycle.id } });
-      const days = enumerateDaysISO(cycle.startDate, cycle.endDate);
+      // Días transcurridos únicamente — ver comentario en GET /:cycleId más
+      // abajo: un ciclo todavía en curso no puede "deber" sus días futuros.
+      const days = enumerateDaysISO(cycle.startDate, cycle.endDate).filter((d) => d <= todayISOForCompare);
       const statuses = buildGridStatuses(habits, days, logs);
       return {
         id: cycle.id,
@@ -111,11 +114,21 @@ router.get("/:cycleId", async (req, res) => {
 
   const days = enumerateDaysISO(cycle.startDate, cycle.endDate);
 
-  const gridStatuses = buildGridStatuses(habits, days, logs);
+  // Recortado a los días ya transcurridos — un ciclo todavía en curso (ej.
+  // día 7 de 93) no puede "deber" los 86 días que todavía ni llegaron: antes
+  // esos días futuros se contaban como PENDING en el % general Y en el % por
+  // hábito, lo que hacía que TODO se viera cerca de 0% recién empezado el
+  // ciclo, sin importar cuánto se estuviera cumpliendo en los días reales.
+  // Mismo criterio que ya usaba `byDay` más abajo — ahora unificado acá
+  // arriba para que totals/completionRate/byHabit también lo respeten.
+  const todayISO = todayLocalISO();
+  const elapsedDays = days.filter((day) => day <= todayISO);
+
+  const gridStatuses = buildGridStatuses(habits, elapsedDays, logs);
   const totals = countTotals(gridStatuses);
   const completionRate = calculateCompletionRate(gridStatuses);
 
-  const byHabitRates = calculateCompletionRateByHabit(habits, days, logs);
+  const byHabitRates = calculateCompletionRateByHabit(habits, elapsedDays, logs);
   const byHabit = habits.map((habit) => ({
     id: habit.id,
     name: habit.name,
@@ -124,11 +137,8 @@ router.get("/:cycleId", async (req, res) => {
     completionRate: byHabitRates[habit.id],
   }));
 
-  // Tendencia diaria: recortada a los días ya transcurridos si el ciclo activo
-  // termina en el futuro — nunca se rellenan los días faltantes con 0%, se
-  // omiten directamente del arreglo.
-  const todayISO = todayLocalISO();
-  const elapsedDays = days.filter((day) => day <= todayISO);
+  // Tendencia diaria: mismos `elapsedDays` de arriba — nunca se rellenan los
+  // días faltantes con 0%, se omiten directamente del arreglo.
   const byDayRates = calculateCompletionRateByDay(habits, elapsedDays, logs);
   const byDay = elapsedDays.map((day) => ({
     date: day,

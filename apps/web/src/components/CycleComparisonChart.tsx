@@ -1,39 +1,56 @@
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import ReactECharts from "echarts-for-react";
 import type { CycleComparisonEntry } from "../api/dashboard";
 import { useTheme } from "../lib/useTheme";
 import { CHART_COLORS } from "../lib/chartTheme";
+import { echartsAxisStyle, echartsBaseOption } from "../lib/echartsTheme";
 
 /**
  * Comparación de % de cumplimiento general entre ciclos. `cycles` ya llega
  * ordenado cronológicamente (por `startDate` asc) desde
- * GET /api/dashboard/compare — no se reordena acá.
+ * GET /api/dashboard/compare — no se reordena acá. Una sola serie: sin
+ * leyenda, barra con tope redondeado (4px) y base cuadrada en 0, nunca más
+ * de 24px de ancho aunque haya pocos ciclos.
  */
 export function CycleComparisonChart({ cycles }: { cycles: CycleComparisonEntry[] }) {
   const { theme } = useTheme();
   const colors = CHART_COLORS[theme];
+  const axis = echartsAxisStyle(theme);
 
-  const data = cycles.map((cycle) => ({
-    name: cycle.name,
-    percent: Math.round(cycle.completionRate * 100),
-  }));
+  const names = cycles.map((c) => c.name);
+  const percents = cycles.map((c) => Math.round(c.completionRate * 100));
+
+  const option = {
+    ...echartsBaseOption(theme),
+    xAxis: { type: "category", data: names, ...axis, splitLine: { show: false } },
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: 100,
+      axisLabel: { ...axis.axisLabel, formatter: "{value}%" },
+      splitLine: axis.splitLine,
+      axisLine: { show: false },
+    },
+    tooltip: {
+      ...echartsBaseOption(theme).tooltip,
+      axisPointer: { type: "shadow" },
+      formatter: (params: unknown) => {
+        const p = (params as Array<{ name: string; value: number }>)[0];
+        return `${p.name}<br/><strong>${p.value}%</strong> cumplimiento`;
+      },
+    },
+    series: [
+      {
+        type: "bar",
+        data: percents,
+        barMaxWidth: 24,
+        itemStyle: { color: colors.accent, borderRadius: [4, 4, 0, 0] },
+      },
+    ],
+  };
 
   return (
     <div className="h-64 w-full sm:h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: colors.text2 }} stroke={colors.border} />
-          <YAxis domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: colors.text2 }} stroke={colors.border} />
-          <Tooltip
-            formatter={(value) => [`${value}%`, "Cumplimiento"]}
-            contentStyle={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8 }}
-            labelStyle={{ color: colors.text }}
-            itemStyle={{ color: colors.text }}
-            cursor={{ fill: colors.border, opacity: 0.25 }}
-          />
-          <Bar dataKey="percent" fill={colors.accent} radius={[4, 4, 0, 0]} className="chart-glow" style={{ color: colors.accent }} />
-        </BarChart>
-      </ResponsiveContainer>
+      <ReactECharts option={option} style={{ height: "100%", width: "100%" }} notMerge />
     </div>
   );
 }

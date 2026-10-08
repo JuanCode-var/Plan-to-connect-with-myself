@@ -4,6 +4,7 @@ import type { HabitLog } from "../api/tracking";
 import { useCycleComparison, useCycleSummary } from "../api/dashboard";
 import { CycleSelector } from "../components/CycleSelector";
 import { HabitCompletionBarChart } from "../components/HabitCompletionBarChart";
+import { CategoryCompletionChart } from "../components/CategoryCompletionChart";
 import { InsightsPanel } from "../components/InsightsPanel";
 import { DailyTrendLineChart } from "../components/DailyTrendLineChart";
 import { CycleComparisonChart } from "../components/CycleComparisonChart";
@@ -296,9 +297,15 @@ export function Dashboard() {
               onChange={setChartSection}
               panels={{
               habit: (
-                <Card className="overflow-x-auto">
+                <Card>
                   <h2 className="font-display mb-4 text-base font-semibold">% de cumplimiento por hábito</h2>
                   <HabitCompletionBarChart byHabit={summary.byHabit} />
+                </Card>
+              ),
+              category: (
+                <Card>
+                  <h2 className="font-display mb-4 text-base font-semibold">% de cumplimiento por área de vida</h2>
+                  <CategoryCompletionChart byHabit={summary.byHabit} />
                 </Card>
               ),
               trend: (
@@ -335,10 +342,11 @@ export function Dashboard() {
   );
 }
 
-const CHART_SECTIONS = ["habit", "trend", "comparison"] as const;
+const CHART_SECTIONS = ["habit", "category", "trend", "comparison"] as const;
 type ChartSection = (typeof CHART_SECTIONS)[number];
 const CHART_SECTION_LABELS: Record<ChartSection, string> = {
   habit: "Por hábito",
+  category: "Por área de vida",
   trend: "Tendencia diaria",
   comparison: "Comparación entre ciclos",
 };

@@ -1,7 +1,8 @@
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import ReactECharts from "echarts-for-react";
 import type { CycleSummary } from "../api/dashboard";
 import { useTheme } from "../lib/useTheme";
 import { CHART_COLORS } from "../lib/chartTheme";
+import { echartsAxisStyle, echartsBaseOption } from "../lib/echartsTheme";
 
 function formatDayMonth(dateISO: string): string {
   const [, month, day] = dateISO.split("-");
@@ -11,48 +12,61 @@ function formatDayMonth(dateISO: string): string {
 /**
  * Línea de % de cumplimiento por día. Usa exactamente los días que devuelve
  * el backend (ya recortados a los transcurridos si el ciclo está en curso) —
- * no se vuelve a filtrar ni a rellenar acá. El eje X y los puntos de la línea
- * salen del mismo arreglo `data`, en el mismo orden, así que nunca se
- * desalinean.
+ * no se vuelve a filtrar ni a rellenar acá. Una sola serie: sin leyenda (el
+ * título de la tarjeta ya dice qué se mide), con el tooltip mostrando la
+ * fecha completa en vez de la etiqueta corta del eje.
  */
 export function DailyTrendLineChart({ byDay }: { byDay: CycleSummary["byDay"] }) {
   const { theme } = useTheme();
   const colors = CHART_COLORS[theme];
+  const axis = echartsAxisStyle(theme);
 
-  const data = byDay.map((day) => ({
-    date: day.date,
-    label: formatDayMonth(day.date),
-    percent: Math.round(day.completionRate * 100),
-  }));
+  const labels = byDay.map((d) => formatDayMonth(d.date));
+  const dates = byDay.map((d) => d.date);
+  const percents = byDay.map((d) => Math.round(d.completionRate * 100));
+
+  const option = {
+    ...echartsBaseOption(theme),
+    xAxis: {
+      type: "category",
+      data: labels,
+      boundaryGap: false,
+      ...axis,
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: 100,
+      axisLabel: { ...axis.axisLabel, formatter: "{value}%" },
+      splitLine: axis.splitLine,
+      axisLine: { show: false },
+    },
+    tooltip: {
+      ...echartsBaseOption(theme).tooltip,
+      axisPointer: { type: "line" },
+      formatter: (params: unknown) => {
+        const p = (params as Array<{ dataIndex: number; value: number }>)[0];
+        return `${dates[p.dataIndex]}<br/><strong>${p.value}%</strong> cumplimiento`;
+      },
+    },
+    series: [
+      {
+        type: "line",
+        data: percents,
+        smooth: 0.25,
+        symbol: "circle",
+        symbolSize: 8,
+        lineStyle: { width: 2, color: colors.accent, cap: "round" },
+        itemStyle: { color: colors.accent, borderColor: colors.surface, borderWidth: 2 },
+        emphasis: { scale: 1.3 },
+      },
+    ],
+  };
 
   return (
     <div className="h-64 w-full sm:h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: colors.text2 }} stroke={colors.border} />
-          <YAxis domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} tick={{ fill: colors.text2 }} stroke={colors.border} />
-          <Tooltip
-            labelFormatter={(_, payload) =>
-              (payload && payload.length > 0 ? payload[0]?.payload?.date : "") ?? ""
-            }
-            formatter={(value) => [`${value}%`, "Cumplimiento"]}
-            contentStyle={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8 }}
-            labelStyle={{ color: colors.text }}
-            itemStyle={{ color: colors.text }}
-          />
-          <Line
-            type="monotone"
-            dataKey="percent"
-            stroke={colors.accent}
-            strokeWidth={2.5}
-            dot={{ r: 3, fill: colors.accent, strokeWidth: 0 }}
-            activeDot={{ r: 5 }}
-            className="chart-glow"
-            style={{ color: colors.accent }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      <ReactECharts option={option} style={{ height: "100%", width: "100%" }} notMerge />
     </div>
   );
 }
