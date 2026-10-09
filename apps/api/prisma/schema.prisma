@@ -1,10 +1,19 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
+// `url` acá es SOLO para los comandos de CLI (`prisma migrate`, `prisma
+// generate`, `prisma studio`): Prisma Migrate no soporta todavía conectarse
+// directo a Turso/libSQL remoto, así que las migraciones se siguen generando
+// y probando contra el sqlite local (ver DATABASE_URL en .env.example). La
+// app en runtime NO usa esta url — se conecta a Turso a través del adapter
+// de libSQL (ver apps/api/src/db.ts), configurado con TURSO_DATABASE_URL y
+// TURSO_AUTH_TOKEN. Documentado en el README ("Configurar una máquina
+// nueva").
 datasource db {
   provider = "sqlite"
-  url      = "file:../data/dev.db"
+  url      = env("DATABASE_URL")
 }
 
 // NOTA: el conector sqlite de Prisma no soporta el tipo `enum` nativo (limitación

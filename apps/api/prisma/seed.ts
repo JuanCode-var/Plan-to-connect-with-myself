@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../src/db";
 import { seedLibrary } from "./seed-library-data";
-
-const prisma = new PrismaClient();
 
 // Contrato de valores (ver nota en schema.prisma: SQLite no soporta enums nativos
 // en Prisma, así que HabitMoment, HabitCategory, HabitPriority y LogStatus se
