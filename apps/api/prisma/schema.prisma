@@ -1,6 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 // `url` acá es SOLO para los comandos de CLI (`prisma migrate`, `prisma
@@ -143,6 +142,13 @@ model EmotionalEntry {
   // arriba, mismo criterio): lo que la persona agradece ese día, sin
   // depender de un check-in emocional ni de una reflexión.
   gratitude String?
+  // Cuarta sección: minutos en estado de flow ese día, con una nota opcional
+  // de en qué actividad. Igual criterio que `knowledge`/`gratitude` — una
+  // entrada propia, no depende de pasar por una situación emocional. Puede
+  // haber más de un registro de flow el mismo día (ej. una sesión a la
+  // mañana y otra a la tarde); no se fuerza a uno solo por fecha.
+  flowMinutes  Int?
+  flowActivity String?
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
