@@ -24,26 +24,37 @@ export function toDateOnlyISO(date: string): string {
   return date.slice(0, 10);
 }
 
+function weekdayOfISO(dateISO: string): number {
+  return new Date(`${dateISO}T00:00:00Z`).getUTCDay();
+}
+
+export type HabitSchedule = { createdAt: string; activeWeekdays?: number[] | null };
+
 /**
  * Un hábito creado a mitad de un ciclo no "existía" antes de su `createdAt`.
  * Los días anteriores a esa fecha (comparación solo de fecha, sin hora) se
- * excluyen del cálculo — mismo criterio que
+ * excluyen del cálculo, igual que un día de la semana fuera de
+ * `activeWeekdays` (`null` = todos los días) — mismo criterio que
  * apps/api/src/services/tracking.ts::isDateCountableForHabit.
  */
-export function isDateCountableForHabit(habitCreatedAt: string, dateISO: string): boolean {
-  return dateISO >= toDateOnlyISO(habitCreatedAt);
+export function isDateCountableForHabit(habit: HabitSchedule, dateISO: string): boolean {
+  if (dateISO < toDateOnlyISO(habit.createdAt)) return false;
+  if (habit.activeWeekdays && !habit.activeWeekdays.includes(weekdayOfISO(dateISO))) return false;
+  return true;
 }
 
 /**
  * Un día se "cierra" (deja de poder marcarse) al día siguiente de esa fecha
- * para el resto de los hábitos, pero para los de NOCHE se da un día extra de
- * margen: recién se cierran dos días después. Motivo: un hábito nocturno (ej.
- * "Reservar ventana de sueño 7-9h") se decide al despertar al día SIGUIENTE,
- * no a medianoche — cerrarlo el mismo día que cierra todo lo demás obligaría
- * a marcarlo antes de saber si de verdad se cumplió.
+ * para el resto de los hábitos, pero para los de NOCHE y CIERRE_DEL_DIA se da
+ * un día extra de margen: recién se cierran dos días después. Motivo: un
+ * hábito nocturno (ej. "Reservar ventana de sueño 7-9h") se decide al
+ * despertar al día SIGUIENTE, no a medianoche, y uno de cierre del día (ej.
+ * "Registro emocional y autoconocimiento") a veces se completa pasada la
+ * medianoche — cerrarlo el mismo día que cierra todo lo demás obligaría a
+ * marcarlo antes de saber si de verdad se cumplió.
  */
 export function isDateLockedForHabit(habitMoment: HabitMoment, dateISO: string, todayISO: string): boolean {
-  const cutoff = habitMoment === "NOCHE" ? addDaysISO(todayISO, -1) : todayISO;
+  const cutoff = habitMoment === "NOCHE" || habitMoment === "CIERRE_DEL_DIA" ? addDaysISO(todayISO, -1) : todayISO;
   return dateISO < cutoff;
 }
 

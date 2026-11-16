@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 
+export type WeekdayRate = { weekday: number; label: string; labelShort: string; rate: number; occurrences: number };
+
 export type Insight =
   | {
       type: "weekday";
@@ -10,6 +12,7 @@ export type Insight =
       rateOnWeekday: number;
       rateOverall: number;
       occurrences: number;
+      byWeekday: WeekdayRate[];
       summary: string;
     }
   | {
@@ -21,12 +24,13 @@ export type Insight =
       summary: string;
     }
   | {
-      type: "habit_pair";
-      habitAId: string;
-      habitAName: string;
-      habitBId: string;
-      habitBName: string;
-      coFailures: number;
+      type: "chain";
+      habitIds: string[];
+      habitNames: string[];
+      sharedDays: number;
+      coFailureDays: number;
+      anchor: { habitId: string; habitName: string; rate: number } | null;
+      dailyPattern: { date: string; allFailed: boolean }[];
       summary: string;
     };
 

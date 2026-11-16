@@ -3,12 +3,18 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useRegisterMutation } from "../api/auth";
 import { useAuth } from "../lib/useAuth";
+import { useBackgroundScene } from "../lib/useBackgroundScene";
+import { AnimatedBackground } from "../components/AnimatedBackground";
 import { Logo } from "../components/Logo";
 
 export function Register() {
   const { user, isLoading, signIn } = useAuth();
   const navigate = useNavigate();
   const registerMutation = useRegisterMutation();
+  // Mismo criterio que Login.tsx: fuera de AppShell, sin el fondo neuronal
+  // heredado — se agrega acá directo (BackgroundProvider ya envuelve toda
+  // la app desde main.tsx).
+  const { scene } = useBackgroundScene();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -36,19 +42,20 @@ export function Register() {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center px-4 py-10"
+      className="relative isolate flex min-h-screen items-center justify-center px-4 py-10"
       style={{ background: "var(--bg)" }}
     >
+      <AnimatedBackground scene={scene} />
       <form
         onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border p-6"
+        className="relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border p-6"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <div className="flex flex-col items-center gap-3 text-center">
-          <Logo compact />
+          <Logo />
           <div>
             <h1 className="font-display text-xl font-bold" style={{ color: "var(--text)" }}>
-              Creá tu cuenta
+              Crea tu cuenta
             </h1>
             <p className="mt-1 text-sm" style={{ color: "var(--text-2)" }}>
               Para que la app te salude por tu nombre y siga tu progreso.
@@ -102,7 +109,7 @@ export function Register() {
           <p className="text-sm text-red-500">
             {isDuplicateEmail
               ? "Ya existe una cuenta con ese email."
-              : "No se pudo crear la cuenta. Revisá los datos e intentá de nuevo."}
+              : "No se pudo crear la cuenta. Revisa los datos e intenta de nuevo."}
           </p>
         )}
 
@@ -116,9 +123,9 @@ export function Register() {
         </button>
 
         <p className="text-center text-sm" style={{ color: "var(--text-2)" }}>
-          ¿Ya tenés cuenta?{" "}
+          ¿Ya tienes cuenta?{" "}
           <Link to="/login" style={{ color: "var(--accent)" }}>
-            Iniciá sesión
+            Inicia sesión
           </Link>
         </p>
       </form>

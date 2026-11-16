@@ -1,7 +1,7 @@
 import type { LogStatus } from "../domain";
 import { isDateCountableForHabit } from "./completion";
 
-export type StreakHabit = { id: string; createdAt: string };
+export type StreakHabit = { id: string; createdAt: string; activeWeekdays?: number[] | null };
 
 /**
  * Racha actual de un hábito: días consecutivos en `DONE`, contando hacia
@@ -24,7 +24,7 @@ export function calculateCurrentStreak(
   let streak = 0;
   for (let i = elapsedDays.length - 1; i >= 0; i--) {
     const date = elapsedDays[i];
-    if (!isDateCountableForHabit(habit.createdAt, date)) break;
+    if (!isDateCountableForHabit(habit, date)) break;
     if (effectiveStatus(habit.id, date) !== "DONE") break;
     streak += 1;
   }
@@ -48,7 +48,7 @@ export function calculatePerfectDayStreak(
   let streak = 0;
   for (let i = elapsedDays.length - 1; i >= 0; i--) {
     const date = elapsedDays[i];
-    const countableHabits = habits.filter((h) => isDateCountableForHabit(h.createdAt, date));
+    const countableHabits = habits.filter((h) => isDateCountableForHabit(h, date));
     if (countableHabits.length === 0) break;
     const allDone = countableHabits.every((h) => effectiveStatus(h.id, date) === "DONE");
     if (!allDone) break;

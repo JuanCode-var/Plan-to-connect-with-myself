@@ -1,5 +1,6 @@
 import { HABIT_CATEGORY_LABELS, HABIT_PRIORITY_COLORS, type HabitCategory, type HabitPriorityLevel } from "../domain";
 import { PriorityIcon } from "./PriorityIcon";
+import { NEURAL_TEXT_SECONDARY } from "./NeuralCore/tokens";
 
 /**
  * Badge de fondo neutro con el ÍCONO de nivel de prioridad coloreado (llama/
@@ -16,7 +17,7 @@ export function CategoryBadge({ category, priority }: { category: HabitCategory;
   return (
     <span
       className="category-chip inline-flex items-center gap-1 whitespace-nowrap rounded-full border-2 px-2 py-0.5 text-xs font-semibold"
-      style={{ borderColor: color, color: "var(--text-2)" }}
+      style={{ borderColor: color, color: NEURAL_TEXT_SECONDARY }}
     >
       <span style={{ color }}>
         <PriorityIcon level={priority} />

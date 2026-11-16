@@ -6,17 +6,27 @@ export type JournalEntry = {
   id: string;
   date: string;
   emotion: Emotion | null;
+  intensity: number | null;
   situation: string | null;
   feeling: string | null;
   impulse: string | null;
   decision: string | null;
   learning: string | null;
   knowledge: string | null;
+  source: string | null;
+  learningId: string | null;
   gratitude: string | null;
+  flowMinutes: number | null;
+  flowActivity: string | null;
   createdAt: string;
 };
 
-type JournalFilters = { from?: string; to?: string; emotion?: Emotion; kind?: "emotion" | "knowledge" | "gratitude" };
+type JournalFilters = {
+  from?: string;
+  to?: string;
+  emotion?: Emotion;
+  kind?: "emotion" | "knowledge" | "gratitude" | "flow";
+};
 
 function buildQuery(filters: JournalFilters): string {
   const params = new URLSearchParams();
@@ -38,13 +48,18 @@ export function useJournalEntries(filters: JournalFilters = {}) {
 type CreateJournalEntryInput = {
   date: string;
   emotion?: Emotion;
+  intensity?: number;
   situation?: string;
   feeling?: string;
   impulse?: string;
   decision?: string;
   learning?: string;
   knowledge?: string;
+  source?: string;
+  learningId?: string;
   gratitude?: string;
+  flowMinutes?: number;
+  flowActivity?: string;
 };
 
 export function useCreateJournalEntry() {
@@ -56,5 +71,30 @@ export function useCreateJournalEntry() {
         body: JSON.stringify(input),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["journal"] }),
+  });
+}
+
+export type GratitudeHabitMarked = { habitId: string; name: string; streak: number };
+
+/**
+ * POST /journal/gratitude — guarda hasta 3 líneas en una sola llamada (cada
+ * una como su propia fila) y, si existe un hábito de gratitud propio, lo
+ * marca cumplido hoy y devuelve su racha (ver comentario en
+ * apps/api/src/routes/journal.ts). Ruta propia en vez de 3 llamadas a
+ * useCreateJournalEntry porque ese efecto secundario debe pasar UNA sola
+ * vez por guardado, no una vez por línea.
+ */
+export function useCreateGratitudeEntries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { date: string; items: string[] }) =>
+      apiFetch<{ entries: JournalEntry[]; habitMarked: GratitudeHabitMarked | null }>("/journal/gratitude", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal"] });
+      queryClient.invalidateQueries({ queryKey: ["cycleLogs"] });
+    },
   });
 }

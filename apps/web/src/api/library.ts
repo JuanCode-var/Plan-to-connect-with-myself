@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 import { showToast } from "../lib/toast";
-import type { LibrarySection, PinDuration } from "../domain";
+import type { HabitCategory, LibrarySection, PinDuration } from "../domain";
+
+export type LibraryIdea = { title: string; text: string; action: string; habitName: string };
 
 export type LibraryEntry = {
   id: string;
@@ -12,7 +14,50 @@ export type LibraryEntry = {
   content: string;
   createdAt: string;
   pinnedUntil: string | null;
+  // "Alimento para tu cerebro" (Fase 0): `area` arranca en null en todo el
+  // contenido existente — asignarla es juicio editorial, no se adivina.
+  // `resumen`/`idea`/`ideasJson` solo los usa LIBRO; `ideasJson` llega como
+  // string y se parsea acá (ver parseLibraryIdeas) porque el server lo
+  // guarda serializado (ver comentario en schema.prisma: son objetos
+  // anidados, no una lista plana, así que no es el mismo CSV que
+  // Habit.activeWeekdays).
+  area: HabitCategory | null;
+  resumen: string | null;
+  idea: string | null;
+  ideasJson: string | null;
+  schoolId: string | null;
 };
+
+export function parseLibraryIdeas(entry: Pick<LibraryEntry, "ideasJson">): LibraryIdea[] {
+  if (!entry.ideasJson) return [];
+  try {
+    const parsed = JSON.parse(entry.ideasJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export type LibrarySchool = {
+  id: string;
+  name: string;
+  area: HabitCategory | null;
+  entryCount: number;
+  challengeDays: Array<{ id: string; day: number; text: string }>;
+  /** 0 = sin empezar, 1-7 = último día completado (7 = reto terminado). */
+  currentDay: number;
+};
+
+export type BookReadingProgress = {
+  id: string;
+  entryId: string;
+  tab: "IDEA" | "IDEAS" | "RESUMEN";
+  currentIdeaIndex: number;
+  percent: number;
+  status: "NUEVO" | "EN_PROGRESO" | "LEIDO";
+};
+
+export type UnlockedQuote = { id: string; entryId: string; unlockedAt: string };
 
 export function useLibrary(section?: LibrarySection) {
   return useQuery({
@@ -81,6 +126,54 @@ export function useUnpinLibraryEntry() {
     mutationFn: (id: string) => apiFetch<LibraryEntry>(`/library/${id}/unpin`, { method: "POST" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library"] }),
     onError: () => showToast("No se pudo desanclar la frase."),
+  });
+}
+
+export function useLibrarySchools() {
+  return useQuery({
+    queryKey: ["library", "schools"],
+    queryFn: () => apiFetch<LibrarySchool[]>("/library/schools"),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useBookReadingProgress() {
+  return useQuery({
+    queryKey: ["library", "reading-progress"],
+    queryFn: () => apiFetch<BookReadingProgress[]>("/library/reading-progress"),
+  });
+}
+
+export type UpdateReadingProgressInput = {
+  tab?: BookReadingProgress["tab"];
+  currentIdeaIndex?: number;
+  percent?: number;
+  status?: BookReadingProgress["status"];
+};
+
+export function useUpdateReadingProgress() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entryId, data }: { entryId: string; data: UpdateReadingProgressInput }) =>
+      apiFetch<BookReadingProgress>(`/library/${entryId}/reading-progress`, { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library", "reading-progress"] }),
+    onError: () => showToast("No se pudo guardar tu avance de lectura."),
+  });
+}
+
+export function useAdvanceSchoolDay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (schoolId: string) => apiFetch(`/library/schools/${schoolId}/advance-day`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library", "schools"] }),
+    onError: () => showToast("No se pudo guardar el avance del reto."),
+  });
+}
+
+export function useUnlockedQuotes() {
+  return useQuery({
+    queryKey: ["library", "unlocked-quotes"],
+    queryFn: () => apiFetch<UnlockedQuote[]>("/library/unlocked-quotes"),
   });
 }
 

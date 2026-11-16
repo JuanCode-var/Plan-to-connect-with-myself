@@ -14,6 +14,10 @@ dist-ssr
 apps/api/data/
 _stray_scaffold_backup/
 
+# Volcados de respaldo locales (scripts de migración tipo tmp-backup-*.ts):
+# datos personales reales del usuario, nunca al repositorio remoto.
+apps/api/backups/
+
 # Contenido personal y privado de la Biblioteca (libros/filosofías/frases
 # propias): nunca debe subirse al repositorio remoto.
 apps/api/prisma/seed-library-personal.ts

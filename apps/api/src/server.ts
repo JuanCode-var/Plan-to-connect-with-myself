@@ -18,6 +18,15 @@ import authRouter from "./routes/auth";
 import libraryRouter from "./routes/library";
 import insightsRouter from "./routes/insights";
 import goalsRouter from "./routes/goals";
+import wordRouter from "./routes/word";
+import compassRouter from "./routes/compass";
+import learningsRouter from "./routes/learnings";
+import microActionsRouter from "./routes/micro-actions";
+import learningApplicationsRouter from "./routes/learning-applications";
+import woopPlansRouter from "./routes/woop-plans";
+import neuralCoreRouter from "./routes/neural-core";
+import profileRouter from "./routes/profile";
+import dosesRouter from "./routes/doses";
 import { requireAuth } from "./middleware/requireAuth";
 
 const app = express();
@@ -41,6 +50,15 @@ app.use("/api/dashboard", requireAuth, dashboardRouter);
 app.use("/api/library", requireAuth, libraryRouter);
 app.use("/api/insights", requireAuth, insightsRouter);
 app.use("/api/goals", requireAuth, goalsRouter);
+app.use("/api/word", requireAuth, wordRouter);
+app.use("/api/compass", requireAuth, compassRouter);
+app.use("/api/learnings", requireAuth, learningsRouter);
+app.use("/api/micro-actions", requireAuth, microActionsRouter);
+app.use("/api/learning-applications", requireAuth, learningApplicationsRouter);
+app.use("/api/woop-plans", requireAuth, woopPlansRouter);
+app.use("/api/neural-core", requireAuth, neuralCoreRouter);
+app.use("/api/profile", requireAuth, profileRouter);
+app.use("/api/doses", requireAuth, dosesRouter);
 
 app.listen(PORT, () => {
   console.log(`Dr. Axón API escuchando en http://localhost:${PORT}`);

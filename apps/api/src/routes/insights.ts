@@ -11,7 +11,10 @@ const router = Router();
 // la relación con Habit (ver comentario en schema.prisma).
 router.get("/", async (req, res) => {
   const [habits, logs, entries] = await Promise.all([
-    prisma.habit.findMany({ where: { userId: req.userId! }, select: { id: true, name: true, createdAt: true } }),
+    prisma.habit.findMany({
+      where: { userId: req.userId! },
+      select: { id: true, name: true, createdAt: true, activeWeekdays: true },
+    }),
     prisma.habitLog.findMany({
       where: { habit: { userId: req.userId! } },
       select: { habitId: true, date: true, status: true },

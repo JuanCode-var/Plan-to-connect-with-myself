@@ -12,19 +12,44 @@ import type { ReactNode } from "react";
  * cada sección mantiene su propio estado/datos en cache y no hay que volver
  * a pedirlos al servidor cada vez que se cambia de pestaña.
  */
+export type SectionPagerColors = {
+  bg: string;
+  border: string;
+  text: string;
+  textMuted: string;
+  accent: string;
+  accentInk: string;
+};
+
+const DEFAULT_COLORS: SectionPagerColors = {
+  bg: "var(--surface)",
+  border: "var(--border)",
+  text: "var(--text)",
+  textMuted: "var(--text-2)",
+  accent: "var(--accent)",
+  accentInk: "var(--accent-ink)",
+};
+
 export function SectionPager<T extends string>({
   sections,
   labels,
   active,
   onChange,
   panels,
+  colors,
 }: {
   sections: readonly T[];
   labels: Record<T, string>;
   active: T;
   onChange: (section: T) => void;
   panels: Record<T, ReactNode>;
+  // Opcional: por defecto usa los tokens de tema claro/oscuro de siempre
+  // (ResonanceTabs.tsx en Resumen depende de ese default) — Hábitos/Diario
+  // pasan la paleta de Núcleo Neural acá, mismo patrón que `colors` en
+  // SectionIntro.tsx.
+  colors?: SectionPagerColors;
 }) {
+  const c = colors ?? DEFAULT_COLORS;
   const activeIndex = Math.max(0, sections.indexOf(active));
   const canPrev = activeIndex > 0;
   const canNext = activeIndex < sections.length - 1;
@@ -38,7 +63,7 @@ export function SectionPager<T extends string>({
           disabled={!canPrev}
           aria-label="Sección anterior"
           className="shrink-0 rounded-full border px-2.5 py-1.5 text-base font-bold transition-opacity disabled:opacity-30"
-          style={{ borderColor: "var(--border)", color: "var(--text)" }}
+          style={{ borderColor: c.border, color: c.text }}
         >
           ‹
         </button>
@@ -52,11 +77,11 @@ export function SectionPager<T extends string>({
               aria-pressed={section === active}
               className="rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors"
               style={{
-                background: section === active ? "var(--accent)" : "var(--surface)",
-                color: section === active ? "var(--accent-ink)" : "var(--text-2)",
+                background: section === active ? c.accent : c.bg,
+                color: section === active ? c.accentInk : c.textMuted,
                 borderWidth: 1,
                 borderStyle: "solid",
-                borderColor: section === active ? "var(--accent)" : "var(--border)",
+                borderColor: section === active ? c.accent : c.border,
               }}
             >
               {labels[section]}
@@ -70,7 +95,7 @@ export function SectionPager<T extends string>({
           disabled={!canNext}
           aria-label="Siguiente sección"
           className="shrink-0 rounded-full border px-2.5 py-1.5 text-base font-bold transition-opacity disabled:opacity-30"
-          style={{ borderColor: "var(--border)", color: "var(--text)" }}
+          style={{ borderColor: c.border, color: c.text }}
         >
           ›
         </button>

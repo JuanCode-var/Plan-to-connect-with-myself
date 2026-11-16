@@ -46,7 +46,7 @@ function buildGridStatuses(
   const statuses: string[] = [];
   for (const habit of habits) {
     for (const day of days) {
-      if (!isDateCountableForHabit(habit.createdAt, day)) {
+      if (!isDateCountableForHabit(habit, day)) {
         statuses.push("NA");
         continue;
       }
@@ -83,12 +83,26 @@ router.get("/compare", async (req, res) => {
       // abajo: un ciclo todavía en curso no puede "deber" sus días futuros.
       const days = enumerateDaysISO(cycle.startDate, cycle.endDate).filter((d) => d <= todayISOForCompare);
       const statuses = buildGridStatuses(habits, days, logs);
+      const byHabitRates = calculateCompletionRateByHabit(habits, days, logs);
       return {
         id: cycle.id,
         name: cycle.name,
         startDate: cycle.startDate,
         endDate: cycle.endDate,
         completionRate: calculateCompletionRate(statuses),
+        // "Versiones de ti" (Resonancia del ciclo) necesita el % por
+        // hábito de cada ciclo pasado para armar su % por ÁREA — hasta
+        // ahora /compare solo traía el % general. `hasData` distingue "el
+        // ciclo existe pero no se registró nada" (tarjeta fantasma, nunca
+        // inventada: 0 HabitLog reales) de "se registró y dio 0%".
+        byHabit: habits.map((habit) => ({
+          id: habit.id,
+          name: habit.name,
+          category: habit.category,
+          priority: habit.priority,
+          completionRate: byHabitRates[habit.id],
+        })),
+        hasData: logs.length > 0,
       };
     }),
   );
@@ -157,7 +171,7 @@ router.get("/:cycleId", async (req, res) => {
           (log) =>
             log.habitId === habit.id &&
             log.status === "DONE" &&
-            isDateCountableForHabit(habit.createdAt, toDateOnlyISO(log.date)),
+            isDateCountableForHabit(habit, toDateOnlyISO(log.date)),
         ).length
       : 0;
   }
@@ -174,6 +188,13 @@ router.get("/:cycleId", async (req, res) => {
     counters,
     byHabit,
     byDay,
+    // Historial diario por hábito (crudo, sin agregar) — lo necesita
+    // "Sinergias" (Resonancia del ciclo) para cruzar qué hábitos se
+    // cumplieron el mismo día entre sí, algo que un % agregado no puede
+    // responder. Ya estaba en memoria (`logs`, arriba) para construir
+    // byHabit/byDay/counters; exponerlo acá es costo ~0 — evita un segundo
+    // roundtrip. Mismo shape que HabitLog en apps/web/src/api/tracking.ts.
+    habitLogs: logs,
   });
 });
 

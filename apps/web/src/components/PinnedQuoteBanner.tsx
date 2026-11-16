@@ -21,26 +21,34 @@ function remainingLabel(pinnedUntil: string): string {
 export function PinnedQuoteBanner({ quote, onUnpin }: { quote: LibraryEntry; onUnpin: () => void }) {
   return (
     <div
-      className="panel-card-in flex items-start justify-between gap-3 rounded-2xl border p-4"
-      style={{ background: "var(--surface)", borderColor: "var(--border)", borderLeft: `3px solid ${INSIGHT_COLOR}` }}
+      className="panel-card-in flex h-full flex-col justify-between gap-4 rounded-2xl border p-5"
+      style={{
+        background: `linear-gradient(160deg, var(--accent-soft), var(--surface) 55%)`,
+        borderColor: "var(--border)",
+      }}
     >
       <div className="min-w-0">
+        <span className="text-2xl leading-none" style={{ color: INSIGHT_COLOR }} aria-hidden>
+          &ldquo;
+        </span>
         <p className="font-reading text-sm italic sm:text-base" style={{ color: "var(--text)" }}>
-          “{quote.content}”
+          {quote.content}
         </p>
-        <p className="mt-1.5 text-xs" style={{ color: "var(--text-2)" }}>
+      </div>
+      <div className="flex items-end justify-between gap-2">
+        <p className="text-xs" style={{ color: "var(--text-2)" }}>
           {quote.author && <span>— {quote.author} · </span>}
           📌 {remainingLabel(quote.pinnedUntil!)}
         </p>
+        <button
+          type="button"
+          onClick={onUnpin}
+          className="shrink-0 rounded-lg border px-2.5 py-1 text-xs"
+          style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
+        >
+          Desanclar
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onUnpin}
-        className="shrink-0 rounded-lg border px-2.5 py-1 text-xs"
-        style={{ borderColor: "var(--border)", color: "var(--text-2)" }}
-      >
-        Desanclar
-      </button>
     </div>
   );
 }

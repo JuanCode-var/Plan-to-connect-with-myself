@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCycleLogs, useCycles } from "../api/tracking";
 import { usePinnedQuote, useUnpinLibraryEntry } from "../api/library";
+import { CompassInterventions } from "../components/CompassInterventions";
 import { CycleSelector } from "../components/CycleSelector";
 import { DeleteCycleButton } from "../components/DeleteCycleButton";
 import { NewCycleForm } from "../components/NewCycleForm";
 import { PinnedQuoteBanner } from "../components/PinnedQuoteBanner";
+import { SectionIntro } from "../components/SectionIntro";
 import { TrackerMatrix } from "../components/TrackerMatrix";
-import { TodayProgress } from "../components/TodayProgress";
-import { ToastHost } from "../components/ToastHost";
+import { CerebroWidget } from "../components/NeuralCore/CerebroWidget";
 import { todayISO } from "../lib/date";
 
 export function Tracker() {
@@ -81,9 +82,16 @@ export function Tracker() {
           </div>
         </div>
 
-        {pinnedQuote && (
-          <PinnedQuoteBanner quote={pinnedQuote} onUnpin={() => unpinQuote.mutate(pinnedQuote.id)} />
-        )}
+        <SectionIntro
+          id="tracker"
+          purpose="La matriz diaria, donde marcas cada hábito."
+          steps={[
+            "Clic marca cumplido/pendiente.",
+            "Clic derecho (o mantener presionado en el celular) marca \"no aplica\" ese día.",
+            "El % se recalcula solo.",
+          ]}
+          benefit="Ganas un registro real día a día, no memoria — de acá sale todo lo demás (Resumen, Patrones)."
+        />
 
         {showNewCycleForm && (
           <NewCycleForm
@@ -101,7 +109,7 @@ export function Tracker() {
 
         {!cyclesLoading && cycles && cycles.length === 0 && (
           <p style={{ color: "var(--text-2)" }}>
-            Todavía no hay ciclos. Creá el primero con "Crear nuevo ciclo".
+            Todavía no hay ciclos. Crea el primero con "Crear nuevo ciclo".
           </p>
         )}
 
@@ -110,12 +118,16 @@ export function Tracker() {
 
         {cycleLogs && effectiveCycleId && (
           <>
-            <TodayProgress data={cycleLogs} />
-            <TrackerMatrix cycleId={effectiveCycleId} data={cycleLogs} />
+            <CompassInterventions cycleLogs={cycleLogs} />
+            <CerebroWidget data={cycleLogs} />
+            {pinnedQuote && (
+              <PinnedQuoteBanner quote={pinnedQuote} onUnpin={() => unpinQuote.mutate(pinnedQuote.id)} />
+            )}
+            <div id="tracker-checklist">
+              <TrackerMatrix cycleId={effectiveCycleId} data={cycleLogs} />
+            </div>
           </>
         )}
-
-        <ToastHost />
       </div>
     </div>
   );

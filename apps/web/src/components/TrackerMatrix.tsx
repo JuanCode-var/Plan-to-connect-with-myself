@@ -10,6 +10,12 @@ import { PriorityIcon } from "./PriorityIcon";
 import { randomLibraryEntry, useLibrary } from "../api/library";
 import { useSetLogStatus } from "../api/tracking";
 import type { CycleLogs, HabitLog } from "../api/tracking";
+import { useCompass } from "../api/compass";
+import { useLearnings, useSuggestedLearning } from "../api/microActions";
+import { ApplyLearningModal } from "./ApplyLearningModal";
+import { markApplyLearningShownToday, wasApplyLearningShownToday } from "../lib/applyLearningTriggers";
+import { buildPostponedMessage } from "../lib/compassMessages";
+import { markMessageShownToday, wasMessageShownToday } from "../lib/compassTriggers";
 import {
   calculateCompletionRate,
   isDateCountableForHabit,
@@ -21,7 +27,7 @@ import { todayISO } from "../lib/date";
 import { showToast } from "../lib/toast";
 import { firstName } from "../lib/greeting";
 import { useAuth } from "../lib/useAuth";
-import { FlameIcon } from "./FlameIcon";
+import { LightningIcon } from "./LightningIcon";
 
 type NaMenuState = { habitId: string; date: string; x: number; y: number } | null;
 
@@ -49,6 +55,28 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
   const { user } = useAuth();
   const today = todayISO();
   const { data: quotes } = useLibrary("FRASE");
+  const { data: compass } = useCompass();
+  // Para saber, al marcar un hábito, si tiene un aprendizaje vinculado a
+  // mano (ver handleToggle más abajo) — misma query que ya cachea
+  // MicroActions.tsx, no pega de nuevo al server si ya está en caché.
+  const { data: learnings } = useLearnings();
+
+  // "¿Cómo lo aplicaste?" (Micro acciones): al marcar cumplido un hábito hoy
+  // (Mental/Emocional, o cualquiera con aprendizaje vinculado a mano), se
+  // consulta el aprendizaje sugerido para ESE hábito puntual —
+  // `pendingApplyHabitId` solo se setea cuando corresponde preguntar
+  // (dispara el fetch vía `enabled`), nunca para todos los hábitos a la vez.
+  // `applyModal` se DERIVA en el render (no en un efecto): apenas la
+  // consulta resuelve con un aprendizaje real, ya hay datos para
+  // mostrar el modal — no hace falta un setState extra reaccionando a otro
+  // setState.
+  const [pendingApplyHabitId, setPendingApplyHabitId] = useState<string | undefined>(undefined);
+  const { data: suggestedLearning, isSuccess: suggestedLearningReady } = useSuggestedLearning(pendingApplyHabitId);
+  const pendingApplyHabit = habits.find((h) => h.id === pendingApplyHabitId);
+  const applyModal =
+    pendingApplyHabit && suggestedLearningReady && suggestedLearning
+      ? { habitId: pendingApplyHabit.id, habitName: pendingApplyHabit.name, habitCategory: pendingApplyHabit.category, learning: suggestedLearning }
+      : null;
 
   // Navegación entre días de la tabla (ver DAY_STEP_PX más abajo): antes solo
   // existía el scroll horizontal nativo, delgado y poco visible, para llegar
@@ -95,13 +123,19 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
       }
     }
 
+    // A propósito SIN refuerzo de identidad al cumplir (etapa 3): ese
+    // momento ya lo cubre la frase de la Biblioteca de arriba — pedido
+    // explícito del usuario de no duplicar el mismo instante con dos
+    // avisos. Los demás triggers de identidad (atrasado, "hoy no", racha
+    // rota, 2-3 días fallados) siguen disparando normal.
+
     // Refuerzo positivo inmediato: si esta marca cierra TODOS los hábitos
     // contables de hoy, un toast celebra el cierre del día. Se calcula acá
     // (no en el servidor) porque solo importa para la fecha de hoy en la
     // sesión actual del usuario, no es un dato que haya que persistir.
     if (next === "DONE" && date === today) {
       const dayComplete = habits.every((h) => {
-        if (!isDateCountableForHabit(h.createdAt, date)) return true;
+        if (!isDateCountableForHabit(h, date)) return true;
         if (h.id === habitId) return true;
         return effectiveStatus(h.id, date) === "DONE";
       });
@@ -113,11 +147,50 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
         );
       }
     }
+
+    // "¿Cómo lo aplicaste?" (Micro acciones): solo para hoy. Dispara en dos
+    // casos — (1) el hábito tiene un aprendizaje vinculado A MANO (cualquier
+    // categoría, ver LearningForm.tsx/Learning.habitId), o (2) es Mental o
+    // Emocional (comportamiento de siempre: sugerencia por área). El throttle
+    // usa una key distinta para cada caso (ver applyLearningTriggers.ts):
+    // por HÁBITO si está linkeado (cada hábito linkeado tiene su propio
+    // aprendizaje, no "lo mismo" repetido) o por ÁREA si es la sugerencia
+    // genérica (completar 3 hábitos Mental el mismo día no debe preguntar 3
+    // veces lo mismo).
+    if (next === "DONE" && date === today) {
+      const habit = habits.find((h) => h.id === habitId);
+      const hasLinkedLearning = (learnings ?? []).some((l) => !l.archived && l.habitId === habitId);
+      const scopeKey = hasLinkedLearning ? `habit:${habitId}` : habit ? `area:${habit.category}` : undefined;
+      if (
+        habit &&
+        scopeKey &&
+        (hasLinkedLearning || habit.category === "MENTAL" || habit.category === "EMOCIONAL") &&
+        !wasApplyLearningShownToday(scopeKey, today)
+      ) {
+        // Se marca el throttle ACÁ, no cuando el modal termina de resolver
+        // (puede no haber aprendizaje sugerido y nunca llegar a abrirse) —
+        // el límite es sobre el intento de preguntar, no sobre si había algo
+        // que mostrar.
+        markApplyLearningShownToday(scopeKey, today);
+        setPendingApplyHabitId(habitId);
+      }
+    }
   }
 
   function handleSetNA(habitId: string, date: string) {
     setLogStatus.mutate({ habitId, date, status: "NA" });
     setNaMenu(null);
+
+    // "Hoy no" (etapa 3 de Mi Brújula): mismo criterio de hoy/tope/apagado
+    // que el refuerzo de "cumplido" de arriba.
+    if (date === today && compass?.messagesEnabled) {
+      const habit = habits.find((h) => h.id === habitId);
+      if (habit?.identityMessagesEnabled && !wasMessageShownToday(habitId, today)) {
+        const linked = compass.identities.find((i) => i.id === habit.identityId);
+        markMessageShownToday(habitId, today);
+        showToast(buildPostponedMessage(linked, habit.minimalVersion), "identity");
+      }
+    }
   }
 
   // % por hábito (fila) y por día (columna), recalculados en cada render a
@@ -126,7 +199,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
   for (const habit of habits) {
     const statuses: LogStatus[] = [];
     for (const date of days) {
-      if (!isDateCountableForHabit(habit.createdAt, date)) continue;
+      if (!isDateCountableForHabit(habit, date)) continue;
       statuses.push(effectiveStatus(habit.id, date));
     }
     habitRates.set(habit.id, calculateCompletionRate(statuses));
@@ -136,7 +209,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
   for (const date of days) {
     const statuses: LogStatus[] = [];
     for (const habit of habits) {
-      if (!isDateCountableForHabit(habit.createdAt, date)) continue;
+      if (!isDateCountableForHabit(habit, date)) continue;
       statuses.push(effectiveStatus(habit.id, date));
     }
     dayRates.set(date, calculateCompletionRate(statuses));
@@ -188,7 +261,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
             <tr>
               <th
                 className="sticky left-0 z-20 min-w-[180px] border-b p-2 text-left"
-                style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
+                style={{ background: "var(--surface-solid, var(--surface))", borderColor: "var(--border)", color: "var(--text)" }}
               >
                 Hábito
               </th>
@@ -228,7 +301,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
               })}
               <th
                 className="sticky right-0 z-20 min-w-[56px] border-b p-2 text-center text-xs"
-                style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
+                style={{ background: "var(--surface-solid, var(--surface))", borderColor: "var(--border)", color: "var(--text)" }}
               >
                 %
               </th>
@@ -245,7 +318,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                     <td
                       colSpan={days.length + 2}
                       className="sticky left-0 px-2 py-1 text-xs font-semibold tracking-wide uppercase"
-                      style={{ background: "var(--border)", color: "var(--text-2)" }}
+                      style={{ background: "var(--border-solid, var(--border))", color: "var(--text-2)" }}
                     >
                       {HABIT_MOMENT_LABELS[moment]}
                     </td>
@@ -262,7 +335,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                         <td
                           className="sticky left-0 z-10 min-w-[180px] border-b p-2 font-medium"
                           style={{
-                            background: "var(--surface)",
+                            background: "var(--surface-solid, var(--surface))",
                             borderColor: "var(--border)",
                             color: "var(--text)",
                           }}
@@ -279,17 +352,17 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                             {streak >= 2 && (
                               <span
                                 className="inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-                                style={{ background: "rgba(217,119,6,0.18)", color: "#92400E" }}
+                                style={{ background: "var(--accent-soft)", color: "var(--accent-yellow, var(--accent))" }}
                                 title={`Racha de ${streak} días seguidos`}
                               >
-                                <FlameIcon />
+                                <LightningIcon />
                                 {streak}
                               </span>
                             )}
                           </div>
                         </td>
                         {days.map((date) => {
-                          const countable = isDateCountableForHabit(habit.createdAt, date);
+                          const countable = isDateCountableForHabit(habit, date);
                           const isToday = date === today;
                           const isClosed = isDateLockedForHabit(moment, date, today);
                           return (
@@ -312,7 +385,15 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                                   }
                                 />
                               ) : (
-                                <span style={{ color: "var(--text-2)", opacity: 0.4 }} aria-hidden>
+                                <span
+                                  style={{ color: "var(--text-2)", opacity: 0.4 }}
+                                  title={
+                                    date >= habit.createdAt.slice(0, 10)
+                                      ? "No aplica este día de la semana"
+                                      : undefined
+                                  }
+                                  aria-hidden
+                                >
                                   ·
                                 </span>
                               )}
@@ -322,7 +403,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
                         <td
                           className="font-mono-num sticky right-0 z-10 border-b p-2 text-center text-xs font-semibold"
                           style={{
-                            background: "var(--surface)",
+                            background: "var(--surface-solid, var(--surface))",
                             borderColor: "var(--border)",
                             color: "var(--text)",
                           }}
@@ -340,7 +421,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
             <tr>
               <td
                 className="sticky left-0 z-10 border-t p-2 text-xs font-semibold"
-                style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
+                style={{ background: "var(--surface-solid, var(--surface))", borderColor: "var(--border)", color: "var(--text)" }}
               >
                 % cumplimiento
               </td>
@@ -360,7 +441,7 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
               ))}
               <td
                 className="sticky right-0 z-10 border-t p-2"
-                style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+                style={{ background: "var(--surface-solid, var(--surface))", borderColor: "var(--border)" }}
               />
             </tr>
           </tfoot>
@@ -373,6 +454,16 @@ export function TrackerMatrix({ cycleId, data }: { cycleId: string; data: CycleL
           y={naMenu.y}
           onSelect={() => handleSetNA(naMenu.habitId, naMenu.date)}
           onDismiss={() => setNaMenu(null)}
+        />
+      )}
+
+      {applyModal && (
+        <ApplyLearningModal
+          habitId={applyModal.habitId}
+          habitName={applyModal.habitName}
+          habitCategory={applyModal.habitCategory}
+          learning={applyModal.learning}
+          onClose={() => setPendingApplyHabitId(undefined)}
         />
       )}
     </div>
@@ -490,7 +581,7 @@ function statusLabel(status: LogStatus): string {
 function statusStyles(status: LogStatus): string {
   switch (status) {
     case "DONE":
-      return "border-transparent bg-[#0ED66B] text-white shadow-[0_2px_10px_rgba(14,214,107,0.55)]";
+      return "border-transparent bg-[var(--accent-success,#10D99A)] text-white shadow-[0_2px_10px_rgba(16,217,154,0.45)]";
     case "NA":
       return "border-black/20 bg-black/15 text-black/50";
     default:

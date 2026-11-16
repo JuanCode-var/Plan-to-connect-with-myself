@@ -1,24 +1,42 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 /*
- * Design tokens compartidos por todo el shell de navegación y las 4 vistas
- * ("Impulso + Clínico"): oscuro por defecto, con anulación en modo claro.
- * Ver mockups/dashboard-direccion-impulso-clinico.html — misma paleta.
+ * Design tokens compartidos por todo el shell de navegación y las 10
+ * secciones ("Evolving Mind — neuronal"): oscuro por defecto, con
+ * anulación en modo claro. Identidad de neurociencia/neón — cian como
+ * acento principal (reemplaza al dorado anterior en todos los usos ya
+ * existentes de var(--accent)), azul/violeta/amarillo/verde como acentos
+ * complementarios para degradados, prioridades y rachas (ver
+ * ProgressRing, TrackerMatrix, AnimatedBackground escena "neural").
  */
 :root {
-  --bg: #14171f;
-  --surface: #1b1f29;
-  --border: #262b37;
-  --text: #f2f1ed;
-  --text-2: #8b90a0;
-  --accent: #ffb020;
-  --accent-soft: rgba(255, 176, 32, 0.12);
-  --accent-ink: #14171f;
+  --bg: #070d1a;
+  --bg-secondary: #0a1428;
+  --surface: rgba(13, 27, 49, 0.86);
+  /* Versión opaca de --surface (mismo color, compuesto sobre --bg) para
+     celdas `sticky` como la columna de nombre de hábito en TrackerMatrix:
+     una superficie translúcida ahí deja que la grilla de checkmarks (y el
+     fondo neuronal detrás) se transparenten al hacer scroll horizontal,
+     mezclando visualmente el texto con el checklist. */
+  --surface-solid: #0c192e;
+  --border: rgba(37, 139, 255, 0.18);
+  /* Opaca, mismo criterio que --surface-solid: la fila divisoria de
+     "momento del día" en TrackerMatrix también es `sticky left-0`. */
+  --border-solid: #0c2443;
+  --text: #f3f6ff;
+  --text-2: #9aaac9;
+  --accent: #19d9ff;
+  --accent-soft: rgba(25, 217, 255, 0.12);
+  --accent-ink: #06101f;
+  --accent-blue: #258bff;
+  --accent-violet: #8057ff;
+  --accent-yellow: #ffbe24;
+  --accent-success: #10d99a;
   /* Superficie dedicada a la vista de lectura de la Biblioteca: un poco más
      clara que --surface para que la "página" se distinga del resto del
      chrome de la app, como un papel propio. */
-  --reading-surface: #20242f;
+  --reading-surface: #0e1a30;
 }
 
 :root[data-theme="light"] {
@@ -43,6 +61,15 @@
 
 .font-reading {
   font-family: "Lora", Georgia, "Times New Roman", serif;
+}
+
+/* Solo para "Mi Palabra" (Word.tsx): serif itálica elegante para el epígrafe
+   y los adornos ceremoniales — a propósito NO es una fuente "cursiva de
+   firma" (hubiera quedado como invitación de casamiento, no como documento
+   serio). La firma de verdad es la dibujada a mano en SignaturePad, esto es
+   solo tipografía de apoyo. */
+.font-ceremony {
+  font-family: "Cormorant Garamond", "Lora", Georgia, serif;
 }
 
 /* Brillo sutil en modo oscuro para barras/línea de los gráficos de
@@ -209,6 +236,19 @@
   animation: reader-card-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* "Hábitos por identidad" (Paso 5 del rediseño): el panel de detalle entra
+   deslizándose desde la derecha, 0.35s — mismo criterio que reader-card-in
+   arriba pero horizontal, para la sensación de "panel lateral" en vez de
+   "tarjeta que aparece". prefers-reduced-motion ya la anula vía la regla
+   global al final del archivo. */
+@keyframes habit-panel-in {
+  from { opacity: 0; transform: translateX(32px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.habit-panel-in {
+  animation: habit-panel-in 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .reader-progress-track {
   position: fixed;
   top: 0;
@@ -259,6 +299,25 @@
   animation: toast-out 160ms ease-in both;
 }
 
+/* Mismas entrada/salida que toast-in/out pero espejadas verticalmente —
+   para los toasts de "identity" (ToastHost.tsx), que viven arriba de la
+   pantalla en vez de abajo: entran deslizándose desde arriba, no desde
+   abajo, para que el gesto coincida con dónde están. */
+@keyframes toast-in-top {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast-in-top {
+  animation: toast-in-top 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes toast-out-top {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-6px); }
+}
+.toast-out-top {
+  animation: toast-out-top 160ms ease-in both;
+}
+
 /* Popovers flotantes que se abren desde un botón propio (ProfileMenu.tsx,
    DeleteCycleButton.tsx): antes aparecían de golpe, sin relación visual con
    el botón que los abre. `transform-origin` en la esquina del trigger (la
@@ -274,7 +333,7 @@
 }
 
 /* Paneles de confirmación/selección que empujan el layout al aparecer
-   (HabitCard.tsx::DeleteConfirmPanel, Library.tsx: selector de duración de
+   (HabitRow.tsx::DeleteConfirmPanel, Library.tsx: selector de duración de
    anclado): antes saltaban a su alto final sin transición. Se montan y
    desmontan con `{condición && <Panel/>}`, así que es una animación de
    entrada por keyframes (como el resto del archivo), no una transición de
@@ -323,6 +382,444 @@
   transform: translateY(-2px) scale(1.05) !important;
 }
 
+/*
+ * Sección "Mi Palabra" (Word.tsx): la más importante de la app a pedido
+ * explícito del usuario, así que tiene su propio vocabulario visual, más
+ * solemne que el resto (mosaico/Padlet en todo lo demás) — un documento a
+ * puertas cerradas, no una tarjeta más.
+ */
+
+/* PIN incorrecto: la fila de puntos tiembla en vez de solo ponerse roja —
+   el mismo tipo de feedback físico que un celular al rechazar un passcode. */
+@keyframes word-pin-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.word-pin-shake {
+  animation: word-pin-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Candado → documento: el candado se cierra/abre con un leve "respiro"
+   (scale) para no sentirse estático mientras se espera el PIN, y el
+   documento entra con más ceremonia (más lento, más caída) que cualquier
+   otra entrada de la app — `word-document-in` es deliberadamente más lenta
+   que `panel-card-in` (420ms) para que se sienta como que algo importante
+   se está revelando, no una tarjeta más cargando. */
+@keyframes word-lock-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.word-lock-breathe {
+  animation: word-lock-breathe 2800ms ease-in-out infinite;
+}
+
+@keyframes word-document-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.word-document-in {
+  animation: word-document-in 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* "Micro acciones" (Paso 6 del rediseño): entrada suave al cambiar de
+   vista (Hoy/Aprendizajes/Plan WOOP), de aprendizaje seleccionado o de
+   paso del WOOP — 0.4s, más corta que word-document-in porque acá se
+   repite seguido (cambiar de pestaña), no es una entrada única a la
+   sección. prefers-reduced-motion ya la anula vía la regla global de
+   abajo (@media al final del archivo). */
+@keyframes micro-view-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.micro-view-in {
+  animation: micro-view-in 400ms ease-out both;
+}
+
+/* "Metas del ciclo" (mockup 15f): el botón "+1 · Registrar avance" se
+   reemplaza por "✓ Meta lograda" al cruzar el objetivo — una entrada suave
+   en vez de que el botón nuevo aparezca de golpe. prefers-reduced-motion ya
+   la anula vía la regla global al final del archivo. */
+@keyframes goal-achieved-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.goal-achieved-in {
+  animation: goal-achieved-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Cada cláusula del documento entra en cascada (stagger via --i, mismo
+   mecanismo que .insight-in) una vez que el documento ya está visible. */
+@keyframes word-clause-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.word-clause-in {
+  animation: word-clause-in 420ms ease-out both;
+  animation-delay: calc(220ms + var(--i, 0) * 110ms);
+}
+
+.word-manifesto-bullet::marker {
+  color: var(--accent);
+}
+
+/* Carrusel "tipo libro" de compromisos (WordCommitmentCarousel.tsx): cada
+   página entra desde el lado hacia el que se navegó (siguiente = desde la
+   derecha, anterior = desde la izquierda) — mismo gesto físico que pasar
+   una hoja hacia adelante o hacia atrás. */
+@keyframes word-page-in-next {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes word-page-in-prev {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.word-page-in-next {
+  animation: word-page-in-next 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.word-page-in-prev {
+  animation: word-page-in-prev 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Núcleo Neural (NeuralCoreWidget — reemplaza TodayProgress.tsx en
+   /tracker): animaciones del halo, segmentos del anillo, sinapsis e
+   impulsos. Igual criterio que cell-pop/cell-burst de arriba: clases +
+   keyframes acá, la media query de abajo las colapsa bajo
+   prefers-reduced-motion (y el motor de impulsos en useImpulseEngine.ts ya
+   evita disparar impulsos/destellos en ese caso, yendo directo a `lit`). */
+@keyframes neural-halo-pulse {
+  0%,
+  100% {
+    r: 98px;
+  }
+  50% {
+    r: 108px;
+  }
+}
+.neural-halo {
+  animation: neural-halo-pulse 3200ms ease-in-out infinite;
+}
+
+.neural-ring-segment {
+  transition: stroke-opacity 0.45s ease-out;
+}
+
+.neural-synapse {
+  transition:
+    stroke-width 0.3s ease-out,
+    stroke-opacity 0.3s ease-out;
+}
+
+@keyframes neural-impulse-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    offset-distance: 100%;
+    transform: scale(1.3);
+  }
+}
+.neural-impulse {
+  offset-rotate: 0deg;
+  animation: neural-impulse-travel 650ms cubic-bezier(0.45, 0, 0.85, 0.55) forwards;
+}
+
+@keyframes neural-ring-flash {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+.neural-ring-flash {
+  animation: neural-ring-flash 700ms ease-out forwards;
+}
+
+/* Cerebro Interactivo (CerebroWidget — paso 2 del Núcleo Neural, dentro de
+   NeuralCore/): mismo criterio que .neural-impulse de arriba, pero con los
+   tiempos propios de esta coreografía (750ms, llega a scale 1.4) — el
+   destello no es un círculo aparte acá, es el propio contorno de la región
+   en BrainSVG.tsx (transición de stroke-width inline, sin keyframe). */
+@keyframes brain-impulse-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    offset-distance: 100%;
+    transform: scale(1.4);
+  }
+}
+.brain-impulse {
+  offset-rotate: 0deg;
+  animation: brain-impulse-travel 750ms cubic-bezier(0.45, 0, 0.85, 0.55) forwards;
+}
+
+/* Aura del núcleo (CoreAura.tsx, sección 5) — "Despertar" respira, los
+   estados más altos (Enfoque/Flow/Pleno) giran; la duración de giro la fija
+   cada estado vía `animation-duration` inline, por eso no está acá. */
+@keyframes neural-aura-breathe {
+  0%,
+  100% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+.neural-aura-breathe {
+  animation: neural-aura-breathe 4000ms ease-in-out infinite;
+}
+
+@keyframes neural-aura-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.neural-aura-spin {
+  animation-name: neural-aura-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* Mi Mapa Neuronal (ConstellationBrain.tsx) — parpadeo de cada estrella,
+   duración/retraso propios por estrella vía `animation-duration`/`-delay`
+   inline (por eso no están fijos acá). */
+@keyframes neural-star-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.neural-star-twinkle {
+  animation-name: neural-star-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* "Resonancia del ciclo" — CycleLoadRing.tsx (destello al cruzar un umbral
+   alcanzado + los 3 puntos que orbitan despacio adentro del anillo), puerto
+   directo de los keyframes de Resonancia.dc.html. Solo se montan cuando
+   `!reduceMotion` (ver CycleLoadRing.tsx), la media query de abajo es
+   redundante-pero-consistente con el resto del archivo. */
+@keyframes cn-flash {
+  0% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+.cn-flash {
+  opacity: 0;
+  animation: cn-flash 0.8s ease-out both;
+}
+@keyframes cn-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.cn-orbit {
+  animation: cn-orbit 7s linear infinite;
+}
+
+/* Tu ruta consolidada (ConsolidadoCard.tsx) — flujo animado a lo largo del
+   axón SVG, mismo criterio que .rz-flow del mockup. */
+@keyframes resonance-axon-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.resonance-axon-flow {
+  stroke-dasharray: 6 18;
+  animation: resonance-axon-flow 1.1s linear infinite;
+}
+
+/* Electroencefalograma (EEGChart.tsx) — puerto de los keyframes del mockup.
+   `.eeg-line`/`.eeg-area`/`.eeg-dot` arrancan ocultos y terminan visibles,
+   así que el truco global de abajo (duración 0.01ms, 1 sola iteración) ya
+   los deja bien bajo `prefers-reduced-motion`: corren tan rápido que no se
+   percibe animación, pero el estado FINAL (línea dibujada, área visible,
+   puntos en opacidad 1) es el correcto. `.eeg-now` es la única excepción
+   real: su keyframe TERMINA en opacity 0 (el aro que late se desvanece al
+   final de cada ciclo) — bajo el truco global quedaría invisible, por eso
+   tiene su propia regla explícita más abajo. */
+@keyframes eeg-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.eeg-line {
+  stroke-dasharray: 4000;
+  stroke-dashoffset: 4000;
+  animation: eeg-draw 2.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes eeg-fade {
+  to {
+    opacity: 1;
+  }
+}
+.eeg-area {
+  opacity: 0;
+  animation: eeg-fade 1s ease 1.6s forwards;
+}
+.eeg-dot {
+  opacity: 0;
+  animation: eeg-fade 0.4s ease forwards;
+}
+@keyframes eeg-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.eeg-now {
+  animation: eeg-ping 1.8s ease-out infinite;
+}
+.eeg-col:focus-visible {
+  outline: 2px solid #22d3ee;
+  outline-offset: -2px;
+}
+
+/* Botones-neurona de "Mapa de conexiones" (ConexionesMap.tsx) — mismo
+   realce al pasar el mouse/enfocar que ya tenía Conexiones.dc.html. */
+.cx-hit:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+}
+.cx-hit:hover .cx-dot {
+  transform: scale(1.35);
+}
+.cx-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Región elegida de la tarjeta "EN DISEÑO" de Versiones de ti (MiniBrainSVG.tsx) — late mientras el resto del cerebro queda atenuado. */
+@keyframes vs-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.vs-pulse {
+  animation: vs-pulse 1.6s ease-in-out infinite;
+}
+
+/* Red de "Sinergias" (SinergiasNetwork.tsx) — nodo seleccionado "late" (sy-live), botón-neurona con zona táctil mínima de 44px (sy-hit). */
+.sy-link {
+  transition: opacity 0.35s ease, box-shadow 0.35s ease;
+}
+.sy-node {
+  transition: opacity 0.35s ease, transform 0.25s ease;
+}
+@keyframes sy-live {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.6);
+  }
+}
+.sy-live {
+  animation: sy-live 1.8s ease-in-out infinite;
+}
+.sy-hit {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 50%;
+}
+.sy-hit:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sy-live {
+    animation: none;
+  }
+}
+
+/* "Tu dosis del día" (DosisDelDia.tsx, Fase 2 de Biblioteca). */
+@keyframes dose-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes dose-step-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes dose-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+.dose-breathe {
+  animation: dose-breathe 2.6s ease-in-out infinite;
+}
+@keyframes dose-light-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(140px, -60px) scale(0.4);
+  }
+}
+.dose-light-dot {
+  animation: dose-light-fly 0.8s ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -331,5 +828,12 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  /* Ver nota arriba: sin esto, el aro de "hoy" terminaría invisible en vez
+     de quieto. */
+  .eeg-now {
+    animation: none !important;
+    opacity: 0.9;
+    transform: scale(1);
   }
 }

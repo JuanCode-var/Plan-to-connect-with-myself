@@ -1,0 +1,38 @@
+import type { BrainArea } from "./brainTokens";
+
+/** Formas del cerebro (sección 2 del pedido), viewBox 0 0 600 480, vista lateral. */
+export const BRAIN_STEM_PATH =
+  "M335 336 C345 370 352 410 350 455 L382 455 C380 420 378 392 378 382 C370 370 362 356 360 345 Z";
+
+export const BRAIN_LOBE_PATH: Record<Exclude<BrainArea, "esp">, string> = {
+  men: "M300 42 C220 30 130 60 80 130 C45 180 50 250 95 295 C120 285 140 270 165 258 C200 245 240 232 268 222 C275 160 285 100 300 42 Z",
+  eco: "M300 42 C370 40 430 60 470 105 C482 125 488 148 488 170 C470 190 455 210 440 236 C410 222 375 214 345 212 C318 214 292 218 268 222 C275 160 285 100 300 42 Z",
+  hab: "M488 170 C525 190 545 235 532 275 C522 305 498 322 468 326 C462 295 452 262 440 236 C455 210 470 190 488 170 Z",
+  emo: "M165 258 C200 245 240 232 268 222 C292 218 318 214 345 212 C375 214 410 222 440 236 C452 262 462 295 468 326 C430 334 380 340 330 338 C270 334 215 320 180 300 C165 290 160 275 165 258 Z",
+  fis: "M360 345 C390 338 430 334 468 332 C500 328 528 320 540 342 C548 372 520 400 480 408 C440 414 395 405 375 386 C362 373 356 358 360 345 Z",
+};
+
+export const INSULA_ELLIPSE = { cx: 255, cy: 242, rx: 38, ry: 20 };
+
+export const BRAIN_REGION_LABEL_POS: Record<BrainArea, { x: number; y: number; fontSize: number }> = {
+  men: { x: 170, y: 150, fontSize: 12 },
+  eco: { x: 390, y: 125, fontSize: 12 },
+  hab: { x: 500, y: 262, fontSize: 12 },
+  emo: { x: 335, y: 300, fontSize: 12 },
+  fis: { x: 455, y: 378, fontSize: 12 },
+  esp: { x: 255, y: 246, fontSize: 11 },
+};
+
+/** Surcos decorativos — curvas cortas sin significado funcional, solo textura. */
+export const BRAIN_SULCI: string[] = [
+  "M110 150 C130 145 150 155 160 170",
+  "M130 200 C150 195 170 205 185 215",
+  "M370 90 C390 95 410 105 420 120",
+  "M400 160 C420 165 435 178 445 195",
+  "M200 270 C220 275 245 280 270 278",
+  "M260 310 C285 318 315 320 340 316",
+  "M495 200 C505 215 510 232 508 248",
+  "M390 360 C410 365 430 372 448 382",
+  "M300 100 C300 130 298 160 292 190",
+  "M250 180 C240 200 232 222 230 245",
+];

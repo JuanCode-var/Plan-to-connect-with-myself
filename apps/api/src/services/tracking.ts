@@ -29,20 +29,42 @@ export function toDateOnlyISO(date: Date | string): string {
   return iso.slice(0, 10);
 }
 
+/** CSV "0,1,5" (0=domingo..6=sábado, igual a Date#getUTCDay()) → [0,1,5].
+ * `null`/vacío = todos los días (sin restricción). Mismo criterio que el
+ * parser equivalente del cliente (apps/web/src/lib/completion.ts). */
+export function parseActiveWeekdays(value: string | null | undefined): number[] | null {
+  if (!value) return null;
+  const days = value
+    .split(",")
+    .map((s) => Number(s))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+  return days.length > 0 ? days : null;
+}
+
+function weekdayOfISO(dateISO: string): number {
+  return new Date(`${dateISO}T00:00:00Z`).getUTCDay();
+}
+
+export type HabitSchedule = { createdAt: Date | string; activeWeekdays?: string | null };
+
 /**
  * Un hábito creado a mitad de un ciclo no "existía" antes de su `createdAt`.
  * Para días anteriores a esa fecha (comparación solo de fecha, sin hora), la
  * celda se trata como no contable — igual que `NA` — tanto acá como en el
- * cálculo del cliente (apps/web/src/lib/completion.ts).
+ * cálculo del cliente (apps/web/src/lib/completion.ts). Lo mismo aplica a un
+ * día de la semana que no está entre los `activeWeekdays` del hábito (ej. un
+ * hábito de "lunes/miércoles/viernes" no cuenta los demás días) — así un
+ * hábito de 3 días por semana no necesita que se lo marque "no aplica" a
+ * mano el resto de los días.
  */
-export function isDateCountableForHabit(
-  habitCreatedAt: Date | string,
-  dateISO: string,
-): boolean {
-  return dateISO >= toDateOnlyISO(habitCreatedAt);
+export function isDateCountableForHabit(habit: HabitSchedule, dateISO: string): boolean {
+  if (dateISO < toDateOnlyISO(habit.createdAt)) return false;
+  const activeWeekdays = parseActiveWeekdays(habit.activeWeekdays);
+  if (activeWeekdays && !activeWeekdays.includes(weekdayOfISO(dateISO))) return false;
+  return true;
 }
 
-export type TrackedHabit = { id: string; createdAt: Date | string };
+export type TrackedHabit = { id: string; createdAt: Date | string; activeWeekdays?: string | null };
 export type TrackedLog = { habitId: string; date: Date | string; status: string };
 
 function buildStatusLookup(logs: TrackedLog[]): Map<string, string> {
@@ -61,7 +83,7 @@ function statusesForHabit(
 ): string[] {
   const statuses: string[] = [];
   for (const day of days) {
-    if (!isDateCountableForHabit(habit.createdAt, day)) continue;
+    if (!isDateCountableForHabit(habit, day)) continue;
     statuses.push(lookup.get(`${habit.id}|${day}`) ?? "PENDING");
   }
   return statuses;
@@ -92,7 +114,7 @@ export function calculateCompletionRateByDay(
   for (const day of days) {
     const statuses: string[] = [];
     for (const habit of habits) {
-      if (!isDateCountableForHabit(habit.createdAt, day)) continue;
+      if (!isDateCountableForHabit(habit, day)) continue;
       statuses.push(lookup.get(`${habit.id}|${day}`) ?? "PENDING");
     }
     result[day] = calculateCompletionRate(statuses);
@@ -130,4 +152,34 @@ export function getActiveCycle<T extends CycleForActive>(
     const currentIsBetter = pickClosest ? currentISO < bestISO : currentISO > bestISO;
     return currentIsBetter ? current : best;
   });
+}
+
+// Etapa de mielinización POR HÁBITO (Catálogo de hábitos, mockups 16/16b) —
+// distinta de MyelinStage (apps/web/.../brainTokens.ts, que mide
+// impulsosDeVida acumulados POR ÁREA) y de HabitStrengthKey (CycleResonance/
+// resonanceTokens.ts, % de cumplimiento DENTRO de un ciclo puntual). Acá el
+// % es sobre una ventana móvil de calendario (últimos 30 días, o desde que
+// se creó si es más joven — ver isDateCountableForHabit, que ya resuelve
+// ambos casos con el mismo criterio) — pedido explícito del usuario, no una
+// reutilización de los otros dos sistemas.
+export type CatalogStage = "nuevo" | "poda" | "chispa" | "sendero" | "consolidado" | "automatico";
+
+const NEW_HABIT_MAX_DAYS = 7;
+const AUTOMATICO_MIN_LIFETIME_DONE = 66;
+
+/**
+ * `daysSinceCreated` cuenta el día de creación como día 1 (creado hoy = 1).
+ * `lifetimeDone` es el total histórico de HabitLog en estado DONE (no solo
+ * los últimos 30 días) — umbral exigido además del 100% para "Automático":
+ * un hábito nuevo que acierta sus primeros días ya llega a 100% sin haber
+ * construido la repetición real que el nombre promete, así que se queda en
+ * "Consolidado" hasta sumar los 66 días.
+ */
+export function catalogStageFor(percent: number, daysSinceCreated: number, lifetimeDone: number): CatalogStage {
+  if (daysSinceCreated < NEW_HABIT_MAX_DAYS) return "nuevo";
+  if (percent >= 1 && lifetimeDone >= AUTOMATICO_MIN_LIFETIME_DONE) return "automatico";
+  if (percent >= 0.85) return "consolidado";
+  if (percent >= 0.6) return "sendero";
+  if (percent >= 0.3) return "chispa";
+  return "poda";
 }

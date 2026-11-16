@@ -1,5 +1,14 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" genera el motor para la máquina donde se corre `generate`
+  // (Windows en desarrollo local); "debian-openssl-3.0.x" es el que
+  // necesita el contenedor de apps/api/Dockerfile (node:20-slim, OpenSSL
+  // 3.0.x) — sin esto, `generate` autodetecta un target que no coincide
+  // con el runtime real del contenedor y el motor no arranca ahí (probado
+  // en esta misma máquina: "Prisma Client was generated for
+  // debian-openssl-1.1.x, but the actual deployment required
+  // debian-openssl-3.0.x").
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 // `url` acá es SOLO para los comandos de CLI (`prisma migrate`, `prisma
@@ -37,33 +46,102 @@ datasource db {
 // respectivamente (siempre se llega a ellos pasando primero por el padre ya
 // validado), así se evita duplicar el dato y que se desincronice.
 model User {
-  id               String           @id @default(cuid())
-  name             String
-  email            String           @unique
-  passwordHash     String
-  createdAt        DateTime         @default(now())
-  habits           Habit[]
-  cycles           Cycle[]
-  libraryEntries   LibraryEntry[]
-  emotionalEntries EmotionalEntry[]
-  goals            Goal[]
+  id                         String                    @id @default(cuid())
+  name                       String
+  email                      String                    @unique
+  passwordHash               String
+  createdAt                  DateTime                  @default(now())
+  // Recuperar contraseña por email (lib/passwordReset.ts): se guarda el
+  // HASH del token (sha256, no el token en texto plano — mismo criterio que
+  // passwordHash, aunque acá no hace falta scrypt porque el token ya tiene
+  // alta entropía por sí mismo), con expiración corta. Ambos vuelven a null
+  // al usarse (de un solo uso) o al pedirse uno nuevo (invalida el anterior).
+  resetTokenHash             String?                   @unique
+  resetTokenExpiresAt        DateTime?
+  // "Versiones de ti" (Resonancia del ciclo): intención de la próxima
+  // versión, elegida en la tarjeta "EN DISEÑO" ("¿qué región quieres
+  // encender?"). `nextCycleFocusSetInCycleId` guarda en qué ciclo se eligió
+  // — así, cuando el ciclo ACTIVO ya no es ese (empezó uno nuevo), el
+  // frontend sabe que es el momento de mostrarla (ver Dashboard.tsx). Se
+  // limpia (ambos a null) al mostrarse, de un solo uso por intención.
+  nextCycleFocusArea         String?
+  nextCycleFocusSetInCycleId String?
+  habits                     Habit[]
+  cycles                     Cycle[]
+  libraryEntries             LibraryEntry[]
+  emotionalEntries           EmotionalEntry[]
+  goals                      Goal[]
+  wordVault                  WordVault?
+  compass                    Compass?
+  // "Micro acciones": lo aprendido (Learning), partido en pasos diarios
+  // (MicroAction), el diario de cómo se aplicó (LearningApplication) y los
+  // planes de salida de bloqueo método WOOP (WoopPlan) — ver comentarios en
+  // cada modelo más abajo.
+  learnings                  Learning[]
+  microActions               MicroAction[]
+  learningApplications       LearningApplication[]
+  woopPlans                  WoopPlan[]
+  // "Núcleo Neural" (Cerebro Interactivo / Mi Mapa Neuronal) — ver comentario
+  // en NeuralAreaStat más abajo.
+  neuralAreaStats            NeuralAreaStat[]
+  neuralDailyStates          NeuralDailyState[]
+  // "Alimento para tu cerebro" (Biblioteca) — ver comentarios de cada
+  // modelo más abajo, a partir de LibrarySchool.
+  readingFontSize            Int?
+  bookReadingProgress        BookReadingProgress[]
+  schoolChallengeProgress    SchoolChallengeProgress[]
+  doseProgress               DoseProgress[]
+  unlockedQuotes             UnlockedQuote[]
 }
 
 model Habit {
-  id            String     @id @default(cuid())
-  name          String
-  moment        String // HabitMoment: MANANA | DIA | NOCHE | CIERRE_DEL_DIA
-  specification String
-  category      String // HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL
-  priority      String // HabitPriority: ALTA | MEDIA | BAJA
-  sortOrder     Int
-  active        Boolean    @default(true)
-  createdAt     DateTime   @default(now())
-  logs          HabitLog[]
-  userId        String
-  user          User       @relation(fields: [userId], references: [id])
+  id                      String                @id @default(cuid())
+  name                    String
+  moment                  String // HabitMoment: MANANA | DIA | NOCHE | CIERRE_DEL_DIA
+  specification           String
+  category                String // HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL
+  priority                String // HabitPriority: ALTA | MEDIA | BAJA
+  sortOrder               Int
+  active                  Boolean               @default(true)
+  createdAt               DateTime              @default(now())
+  logs                    HabitLog[]
+  userId                  String
+  user                    User                  @relation(fields: [userId], references: [id])
+  // "Mi Brújula", etapa 2: a qué versión de uno mismo le sirve este hábito
+  // (opcional — ver comentario en Identity, apps/api/src/routes/habits.ts
+  // verifica que pertenezca al mismo usuario antes de guardar). minimalVersion
+  // es la "versión de 2 minutos" que ofrece el trigger de "hoy no" (etapa 3);
+  // identityMessagesEnabled apaga las intervenciones de identidad para este
+  // hábito puntual sin tocar el interruptor general (Compass, etapa 3).
+  identityId              String?
+  identity                Identity?             @relation(fields: [identityId], references: [id])
+  minimalVersion          String?
+  // "Hábitos por identidad" (mockups 16e-16i): completa "Me convierte en
+  // alguien que…" — distinto de `identityId` (un link a una frase de Mi
+  // Identidad ya escrita): esto es específico de ESTE hábito, en texto
+  // corto ("madruga", "entrena todos los días"). Opcional a propósito: los
+  // hábitos viejos sin esto muestran el estado vacío, nunca un texto
+  // inventado.
+  meConvierteEn           String?
+  identityMessagesEnabled Boolean               @default(true)
+  // Días de la semana en que este hábito aplica — CSV de 0 (domingo) a 6
+  // (sábado), ej. "1,3,5" para lunes/miércoles/viernes. `null` = todos los
+  // días (default, compatible con los hábitos existentes antes de este
+  // campo). Un día que no está en esta lista se trata como no contable —
+  // igual que un día anterior a `createdAt` — tanto en /tracker como en el
+  // % de cumplimiento y en "Patrones detectados" (ver isDateCountableForHabit
+  // en services/tracking.ts).
+  activeWeekdays          String?
+  // "Micro acciones": entradas del diario de aplicación que nacieron de
+  // cumplir ESTE hábito (ver LearningApplication.habitId).
+  applications            LearningApplication[]
+  // Aprendizajes vinculados a mano a ESTE hábito (ver Learning.habitId): al
+  // marcarlo cumplido, el cuadro de "¿cómo lo aplicaste?" ofrece el
+  // aprendizaje linkeado en vez de la sugerencia genérica por área.
+  learnings               Learning[]
 
   @@index([userId])
+  @@index([identityId])
 }
 
 model Cycle {
@@ -97,13 +175,13 @@ model HabitLog {
 // LibrarySource:  SEED (curado por la app, no editable) | USER (agregado por
 // la persona, se puede borrar)
 model LibraryEntry {
-  id        String   @id @default(cuid())
-  section   String // LibrarySection: LIBRO | FRASE | FILOSOFIA
-  source    String // LibrarySource: SEED | USER
-  title     String?
-  author    String?
-  content   String
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  section     String // LibrarySection: LIBRO | FRASE | FILOSOFIA
+  source      String // LibrarySource: SEED | USER
+  title       String?
+  author      String?
+  content     String
+  createdAt   DateTime  @default(now())
   // Frase anclada en /tracker hasta esta fecha/hora (instante exacto, no
   // fecha pura como HabitLog.date: acá sí importa la hora porque "un día"
   // significa 24hs desde que se ancla, no hasta medianoche). Solo una
@@ -115,33 +193,243 @@ model LibraryEntry {
   // NULL = contenido curado por la app (SEED), visible para cualquier
   // cuenta — no tiene sentido duplicarlo por usuario. Con valor = entrada
   // propia (SEED nunca lo tiene) de esa cuenta, privada.
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id])
+
+  // ══════ "Alimento para tu cerebro" (rediseño de Biblioteca) ══════
+  // `area` arranca en NULL para TODO el contenido existente a propósito —
+  // asignarla a mano (libro por libro, filosofía por filosofía) es un
+  // juicio editorial real, no algo para adivinar por palabra clave como se
+  // hizo con los compromisos de "Mi Palabra" — se completa desde una
+  // pantalla futura (Fase 1 en adelante), nunca inventada acá.
+  area            String? // HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL
+  // Solo LIBRO usa las 3 capas de abajo. `resumen` reemplaza a `content`
+  // como "texto completo" para los libros (migración de datos: ver
+  // apps/api/scripts/tmp-apply-migration.ts) — `content` se deja intacto
+  // (nunca se borra contenido real) pero deja de leerse para LIBRO una vez
+  // migrado. `idea`/`ideasJson` arrancan vacíos para que el usuario los
+  // escriba — nunca generados automáticamente del resumen.
+  resumen         String?
+  idea            String? // LIBRO: "en una frase"
+  // LIBRO: JSON de hasta 5 `{ title, text, action, habitName }` (array
+  // serializado como texto — no se usa el tipo Json de Prisma para no
+  // sumar un segundo patrón de columna estructurada distinto del CSV que ya
+  // usa Habit.activeWeekdays; acá hacen falta objetos anidados, no una
+  // lista plana, así que JSON es lo que corresponde). Se parsea/valida con
+  // zod en la capa de API antes de llegar al cliente.
+  ideasJson       String?
+  // FILOSOFIA: a qué escuela pertenece (ver LibrarySchool más abajo). NULL
+  // para LIBRO/FRASE, y para FILOSOFIA vieja todavía sin clasificar.
+  schoolId        String?
+  school          LibrarySchool?        @relation(fields: [schoolId], references: [id])
+  // Dosis que desbloquean ESTA frase al completarse (section FRASE) —
+  // nombrada para distinguirla de `doses`, las dosis que usan este
+  // contenido como FUENTE (section LIBRO/FILOSOFIA).
+  unlockedByDoses Dose[]                @relation("DoseReward")
+  doses           Dose[]                @relation("DoseSourceEntry")
+  readingProgress BookReadingProgress[]
+  unlockedBy      UnlockedQuote[]
 
   @@index([section])
   @@index([userId])
+  @@index([schoolId])
+}
+
+// Agrupa las entradas FILOSOFIA en "escuelas" (Estoicismo, Nietzsche,
+// Programación mental, Idealismo práctico — lista inicial, editable: no hay
+// nada hardcodeado fuera de esta tabla). Cada escuela trae un reto de 7 días
+// (`LibrarySchoolChallengeDay`), con el texto de cada día VACÍO a propósito
+// — igual criterio que `idea`/`ideasJson` de LibraryEntry: contenido
+// filosófico real para que el usuario lo escriba, nunca inventado.
+model LibrarySchool {
+  id            String                      @id @default(cuid())
+  name          String
+  // Sugerida, no obligatoria — una escuela puede tocar más de un área en la
+  // práctica; se dejó opcional en vez de forzar una sola.
+  area          String? // HabitCategory
+  sortOrder     Int                         @default(0)
+  entries       LibraryEntry[]
+  challengeDays LibrarySchoolChallengeDay[]
+  progress      SchoolChallengeProgress[]
+  doses         Dose[]                      @relation("DoseSourceSchool")
+}
+
+model LibrarySchoolChallengeDay {
+  id       String        @id @default(cuid())
+  schoolId String
+  school   LibrarySchool @relation(fields: [schoolId], references: [id])
+  day      Int // 1-7
+  text     String        @default("")
+
+  @@unique([schoolId, day])
+}
+
+// Avance del reto de 7 días de una escuela, por usuario. `currentDay` 0 =
+// sin empezar, 1-7 = último día completado (7 = reto terminado). Un solo
+// contador (no un log día a día como DoseProgress): el reto es secuencial y
+// no se recicla como las dosis, así que no hace falta más que "en qué día
+// va".
+model SchoolChallengeProgress {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  schoolId    String
+  school      LibrarySchool @relation(fields: [schoolId], references: [id])
+  currentDay  Int           @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([userId, schoolId])
+}
+
+// Avance de lectura de UN libro, por usuario — "Continuar leyendo" (Fase 1)
+// necesita saber en qué pestaña/idea se quedó. `percent` es una heurística
+// simple definida recién en la Fase 3 (qué tan avanzado está, no palabras
+// leídas de verdad) — el campo ya existe acá porque el ESTADO (nuevo/en
+// progreso/leído) de la Fase 1 depende de él.
+model BookReadingProgress {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id])
+  entryId          String
+  entry            LibraryEntry @relation(fields: [entryId], references: [id])
+  tab              String       @default("IDEA") // BookReadingTab: IDEA | IDEAS | RESUMEN
+  currentIdeaIndex Int          @default(0) // 0-4
+  percent          Int          @default(0) // 0-100
+  status           String       @default("NUEVO") // BookStatus: NUEVO | EN_PROGRESO | LEIDO
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([userId, entryId])
+}
+
+// "Dosis" de 5 pasos (gancho/adivina/pruébalo ahora/recompensa/hoy lo
+// pruebo) — contenido curado, cargado por archivo de seed (ver
+// apps/api/prisma/seed-doses.ts), no desde una pantalla de administrador:
+// más simple y consistente con cómo ya se carga el resto de la Biblioteca
+// (seed-library-personal.ts). Vinculada a un libro O a una escuela (las dos
+// opcionales: puede no haber fuente todavía).
+model Dose {
+  id    String @id @default(cuid())
+  title String
+  area  String // HabitCategory
+
+  sourceEntryId  String?
+  sourceEntry    LibraryEntry?  @relation("DoseSourceEntry", fields: [sourceEntryId], references: [id])
+  sourceSchoolId String?
+  sourceSchool   LibrarySchool? @relation("DoseSourceSchool", fields: [sourceSchoolId], references: [id])
+
+  // Paso 1 · GANCHO — `hookTemplate` puede usar placeholders como "{habito}"
+  // (ver doseSelector.ts/hookTemplate.ts, Fase 2): se resuelve con datos
+  // reales del usuario (el hábito de prioridad alta pendiente de ayer), o se
+  // omite la cláusula si no hay ninguno.
+  hookTemplate    String
+  hookQuestion    String
+  // JSON string[] — 2 a 4 opciones; SIN respuesta por opción, una sola
+  // reflexión (`hookAnswer`) para cualquiera que se elija (ver el ejemplo
+  // de la Fase 0: 3 opciones, 1 sola respuesta).
+  hookOptionsJson String
+  hookAnswer      String
+
+  // Paso 2 · ADIVINA
+  guessQuestion    String
+  guessMin         Int
+  guessMax         Int
+  guessStep        Int
+  guessRealValue   Int
+  guessExplanation String
+
+  // Paso 3 · PRUÉBALO AHORA
+  holdInstruction    String
+  holdCompletionText String
+
+  // Paso 4 · TU RECOMPENSA — la FRASE que se desbloquea.
+  rewardEntryId String
+  rewardEntry   LibraryEntry @relation("DoseReward", fields: [rewardEntryId], references: [id])
+
+  // Paso 5 · HOY LO PRUEBO — JSON de exactamente 3 `{ text, detail }`.
+  actionsJson String
+
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  progress  DoseProgress[]
+
+  @@index([area])
+  @@index([sourceEntryId])
+  @@index([sourceSchoolId])
+}
+
+// Log de dosis completadas — UNA FILA POR VEZ que se completa (no único por
+// usuario+dosis): permite reciclar una dosis ya vista cuando su área agotó
+// las demás, y la racha ("N días seguidos con dosis") se calcula contando
+// fechas DISTINTAS consecutivas, no un contador aparte que se pueda
+// desincronizar. `date` es el calendario LOCAL del usuario, mismo criterio
+// que HabitLog/Cycle en el resto de la app.
+model DoseProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  doseId      String
+  dose        Dose     @relation(fields: [doseId], references: [id])
+  date        String
+  completedAt DateTime @default(now())
+
+  @@index([userId, date])
+  @@index([userId, doseId])
+}
+
+// Colección de frases desbloqueadas por usuario — arrancan TODAS bloqueadas
+// (incluidas las que ya existían en la Biblioteca antes de este rediseño:
+// decisión explícita del usuario, no un default mío) y se desbloquean
+// solamente al completar la dosis cuya `rewardEntryId` apunta a esa frase.
+model UnlockedQuote {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+  entryId    String
+  entry      LibraryEntry @relation(fields: [entryId], references: [id])
+  unlockedAt DateTime     @default(now())
+
+  @@unique([userId, entryId])
 }
 
 model EmotionalEntry {
-  id        String   @id @default(cuid())
-  date      DateTime
+  id           String   @id @default(cuid())
+  date         DateTime
   // Opcional a propósito: una entrada puede ser un check-in emocional (con
   // emoción) o una entrada de solo "Conocimientos y reflexiones" sin pasar
   // por ninguna situación emocional puntual.
-  emotion   String?
-  situation String?
-  feeling   String?
-  impulse   String?
-  decision  String?
-  learning  String?
+  emotion      String?
+  // 1-10, opcional — "¿Con qué intensidad?" del rediseño Núcleo Neural (Paso
+  // 2). Solo tiene sentido junto a `emotion`; nunca se exige para no romper
+  // check-ins viejos que no lo tienen.
+  intensity    Int?
+  situation    String?
+  feeling      String?
+  impulse      String?
+  decision     String?
+  learning     String?
   // Distinto de `learning`: ese es lo aprendido DE ESTA situación puntual;
   // `knowledge` es un espacio más general para conocimientos/ideas del día
   // que no dependen de haber pasado por una situación emocional difícil.
-  knowledge String?
+  knowledge    String?
+  // "¿De dónde vino?" (opcional) — Libro/Podcast/Conversación/Experiencia/
+  // Biblioteca, texto libre (no enum) para no romper si se agrega una fuente
+  // nueva más adelante sin tocar el schema. Solo tiene sentido junto a
+  // `knowledge`.
+  source       String?
+  // Si "Llevarlo a la acción" estaba activo al guardar, acá queda el id del
+  // Learning que se creó en Micro acciones (referencia suelta, sin relación
+  // de Prisma a propósito: Diario y Micro acciones son dominios separados,
+  // esto es solo para poder contar "N reflexiones ya son aprendizajes" en el
+  // resumen semanal sin acoplar los dos schemas).
+  learningId   String?
   // Tercera sección independiente del Diario (ver comentario de `knowledge`
   // arriba, mismo criterio): lo que la persona agradece ese día, sin
   // depender de un check-in emocional ni de una reflexión.
-  gratitude String?
+  gratitude    String?
   // Cuarta sección: minutos en estado de flow ese día, con una nota opcional
   // de en qué actividad. Igual criterio que `knowledge`/`gratitude` — una
   // entrada propia, no depende de pasar por una situación emocional. Puede
@@ -149,9 +437,9 @@ model EmotionalEntry {
   // mañana y otra a la tarde); no se fuerza a uno solo por fecha.
   flowMinutes  Int?
   flowActivity String?
-  createdAt DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
 
   @@index([date])
   @@index([userId])
@@ -167,39 +455,458 @@ model EmotionalEntry {
 //   Fase 4 (plan de acción)   -> GoalStep[] (Tracy paso 3: la lista de todo
 //                                 lo necesario, accionable día a día)
 //   Fase 5 (seguimiento/eval) -> status + followUpNotes + celebration
+// Rediseño "Metas del ciclo" (mockups 15-15f): de las 5 fases de Brian Tracy
+// con checklist de pasos a un modelo de contador simple — una meta es "algo
+// que puedas contar" (objetivo + unidad), no una lista de tareas. `area`
+// nullable a propósito, mismo criterio que WordCommitment.area: las 2 metas
+// viejas de antes de este rediseño no tienen área real (el campo no existía),
+// así que se migraron con un valor por defecto en vez de inventar un dato que
+// no hay — toda meta creada desde acá en adelante la elige en el paso 1 del
+// asistente (obligatorio ahí, no a nivel de schema).
 model Goal {
-  id            String     @id @default(cuid())
+  id            String    @id @default(cuid())
   cycleId       String
-  cycle         Cycle      @relation(fields: [cycleId], references: [id])
+  cycle         Cycle     @relation(fields: [cycleId], references: [id])
   title         String
+  area          String? // HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL
   why           String?
   visualization String?
-  specification String
+  // "objetivo" — entero >= 1, cuánto hace falta contar para lograrla.
+  targetCount   Int       @default(1)
+  // "unidad" — texto libre: "ofertas hechas", "días caminados"...
+  unit          String    @default("meta cumplida")
   targetDate    DateTime
-  status        String     @default("PENDIENTE") // GoalStatus: PENDIENTE | EN_PROGRESO | CUMPLIDA
-  followUpNotes String?
-  // Solo tiene sentido completo una vez que `status` = CUMPLIDA, pero no se
-  // fuerza a nivel de schema (la persona puede ir anotando ideas de cómo
-  // celebrar antes de llegar a la meta).
-  celebration   String?
+  // "avance" — lograda cuando progress >= targetCount (ver POST
+  // /goals/:id/progress). Nunca se deja que baje de 0 ni suba más allá de lo
+  // que tiene sentido mostrar en la barra segmentada (ver GoalCard).
+  progress      Int       @default(0)
+  achievedAt    DateTime?
   sortOrder     Int
-  createdAt     DateTime   @default(now())
-  steps         GoalStep[]
+  createdAt     DateTime  @default(now())
   userId        String
-  user          User       @relation(fields: [userId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
 
   @@index([cycleId])
   @@index([userId])
 }
 
-model GoalStep {
-  id          String   @id @default(cuid())
-  goalId      String
-  goal        Goal     @relation(fields: [goalId], references: [id])
-  description String
-  done        Boolean  @default(false)
-  sortOrder   Int
-  createdAt   DateTime @default(now())
+// "Mi Palabra": la sección más importante de la app a propósito (pedido
+// explícito del usuario) — los compromisos que se da por escrito, con PIN
+// propio (distinto de la contraseña de la cuenta, ver lib/pin.ts) y una
+// firma dibujada a mano. Una fila por cuenta (@@unique en userId): no hay
+// "múltiples palabras", es un único documento vivo que se edita, igual que
+// una persona solo tiene una firma. pinHash nulo = todavía no configuró PIN
+// (primera vez); signatureDataUrl nulo = todavía no firmó.
+model WordVault {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id])
+  pinHash          String?
+  signatureDataUrl String?
+  signedAt         DateTime?
+  commitments      WordCommitment[]
+}
 
-  @@index([goalId])
+// startDate/targetDate alimentan la barra de "progreso" del compromiso en el
+// Resumen: NO es cuánto se cumplió (eso nadie más que la persona lo sabe),
+// es cuánto del plazo que se dio a sí misma ya transcurrió — ver
+// apps/web/src/lib/wordProgress.ts para la fórmula exacta. Fechas puras
+// (medianoche UTC), mismo criterio que Cycle/Goal.
+model WordCommitment {
+  id         String    @id @default(cuid())
+  vaultId    String
+  vault      WordVault @relation(fields: [vaultId], references: [id])
+  title      String
+  text       String
+  startDate  DateTime
+  targetDate DateTime
+  sortOrder  Int
+  createdAt  DateTime  @default(now())
+  // Área de vida (HabitCategory) sugerida por palabra clave del título/texto
+  // al guardar y editable desde la tarjeta de "Circuitos en recableado" (ver
+  // PATCH /word/commitments/:id/area, SIN pin — es solo una etiqueta de
+  // clasificación, no el contenido sagrado del compromiso) — alimenta el %
+  // de su área en el Cerebro del ciclo/hexágono junto con los hábitos reales.
+  area       String?
+  // Resultado final, recién tiene sentido cuando `targetDate` ya pasó — se
+  // confirma una sola vez desde la tarjeta de "¿Cumpliste tu palabra?"
+  // (ver POST /word/commitments/:id/result). `null` = todavía sin confirmar
+  // (el front decide mostrar esa pregunta cuando `targetDate < hoy` y esto
+  // sigue en null).
+  // Campos del modelo DIARIO viejo — ya no se leen ni se escriben (pedido
+  // explícito: "el peso de la palabra se mide en MESES", el diario queda
+  // reemplazado por WordCommitmentMonth de abajo). Se quedan en el schema
+  // sin tocar porque los datos ya guardados no se borran, solo dejan de
+  // usarse — nunca escribir acá de nuevo.
+  result            String?   // WordCommitmentResult: CUMPLIDA | NO_CUMPLIDA (viejo, sin uso)
+  resultConfirmedAt DateTime?
+  checkIns          WordCommitmentCheckIn[] // viejo, sin uso
+  // Resolución de cada mes calendario del compromiso (sellado/sin sello/
+  // caída) — ver apps/api/src/lib/wordMonths.ts para cómo se derivan los
+  // tramos (incluido el último, más corto) a partir de startDate/targetDate.
+  // Solo existe una fila acá por mes YA RESUELTO (sellado, sin sello, o con
+  // caída reportada) — un mes sin fila todavía es futuro/en curso/pendiente
+  // de cierre, calculado al vuelo, nunca pre-creado.
+  months            WordCommitmentMonth[]
+
+  @@index([vaultId])
+}
+
+// "¿Honraste tu palabra hoy?" — MODELO VIEJO, reemplazado por
+// WordCommitmentMonth (pedido explícito: "ya no se marca cada día"). Las
+// filas que ya existen se quedan (no se borran) pero ninguna ruta nueva
+// lee ni escribe acá.
+model WordCommitmentCheckIn {
+  id           String         @id @default(cuid())
+  commitmentId String
+  commitment   WordCommitment @relation(fields: [commitmentId], references: [id])
+  date         DateTime
+  honored      Boolean
+  createdAt    DateTime       @default(now())
+
+  @@unique([commitmentId, date])
+  @@index([commitmentId])
+}
+
+// Resolución de UN mes calendario de un compromiso. `monthIndex` es 1-based
+// (mes 1, mes 2...) — los límites de fecha de ese mes NO se guardan acá, se
+// derivan de WordCommitment.startDate + monthIndex (ver deriveMonthSegments
+// en wordMonths.ts), así que esta fila es pura RESOLUCIÓN: sellado o no, y
+// si hubo una caída reportada (que impide sellar ese mes, aunque sea antes
+// de que el mes termine calendario). `sealed` es lo único con significado
+// real una vez que la fila existe — una fila nunca se crea para un mes que
+// sigue sin resolver (futuro/en curso/pendiente de cierre se calculan al
+// vuelo comparando contra hoy, sin necesidad de una fila placeholder).
+model WordCommitmentMonth {
+  id             String         @id @default(cuid())
+  commitmentId   String
+  commitment     WordCommitment @relation(fields: [commitmentId], references: [id])
+  monthIndex     Int
+  sealed         Boolean
+  fallReportedAt DateTime?
+  createdAt      DateTime       @default(now())
+
+  @@unique([commitmentId, monthIndex])
+  @@index([commitmentId])
+}
+
+// "Mi Identidad" (antes "Mi Brújula") — el documento real de identidad del
+// usuario (traído de Notion), no un cuestionario genérico. Sin PIN a
+// propósito (a diferencia de WordVault): protegida igual que Metas/Diario,
+// con el login de la cuenta nada más. Una fila por cuenta (@@unique en
+// userId) — es un documento vivo que se edita, no una lista de
+// "documentos". `identityOnboardingCompletedAt` null = todavía no completó
+// el cuestionario obligatorio post-registro (ver RequireAuth.tsx);
+// `lastReviewedAt` alimenta el banner de "Seguimiento Semanal" (cada 8
+// días, no 30 — así lo revisa el usuario en la vida real).
+model Compass {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Autoconocimiento
+  uniqueness             String?
+  enjoyWithoutBeingAsked String?
+  strengths              String?
+  weaknesses             Weakness[]
+
+  // Valores y Creencias — coreValues: hasta 5 ítems cortos, uno por línea
+  // (sin tabla aparte: es una lista chica de texto, mismo criterio simple
+  // que ya se usa en otros campos de una sola línea por ítem).
+  coreValues         String?
+  limitingBeliefs    String?
+  beliefsToReprogram String?
+  empoweringBeliefs  String?
+
+  // Propósito y Dirección
+  cause         String?
+  impact        String?
+  howToLiveDays String?
+
+  identityOnboardingCompletedAt DateTime?
+  lastReviewedAt                DateTime?
+  // Etapa 3: apaga TODAS las intervenciones de identidad de una — distinto
+  // de Habit.identityMessagesEnabled, que apaga una sola.
+  messagesEnabled               Boolean   @default(true)
+  createdAt                     DateTime  @default(now())
+
+  // "Mi núcleo de identidad" (3 pilares) — estado del recorrido ACTUAL, no
+  // se resetea por día: cada pilar queda sellado hasta que los 3 se sellan
+  // en algún momento, momento en el que se completa el recorrido (se
+  // guarda lastFullPillarsJourneyAt y los 3 *_SealedAt vuelven a null para
+  // el próximo recorrido). `lastReviewedAt` se reutiliza para "✓ Repasado
+  // hoy" en el botón Repasar — completar el recorrido también lo marca.
+  pillarAutoconocimientoSealedAt DateTime?
+  pillarValoresSealedAt          DateTime?
+  pillarPropositoSealedAt        DateTime?
+  lastFullPillarsJourneyAt       DateTime?
+
+  identities    Identity[] // "Mi ideal" — vínculo con hábitos, etapa 2, sin cambios
+  reflections   CompassReflection[]
+  dailyProgress IdentityDailyProgress[]
+  // Acciones de propósito creadas desde "Mi núcleo de identidad" (pilar Propósito).
+  microActions  MicroAction[]
+
+  // "Hábitos por identidad" (mockups 16e-16i): frase de identidad POR ÁREA
+  // ("Soy alguien que..."), editable tocándola en su tarjeta — nullable:
+  // mientras no se edite, el frontend usa el texto por defecto (ver
+  // DEFAULT_AREA_IDENTITY en apps/web/src/domain.ts) en vez de guardarlo acá
+  // de entrada, para no confundir "nunca lo tocó" con "lo dejó igual que el
+  // default a propósito".
+  identityMental       String?
+  identityEconomica    String?
+  identityHabilidades  String?
+  identityEmocional    String?
+  identityFisica       String?
+  identityEspiritual   String?
+}
+
+// Una fila por día con actividad real de los pilares — "¿qué fortalezas
+// usaste hoy?" / "¿qué valores viviste hoy?" / "¿reprogramaste una
+// creencia hoy?". Independiente de qué pilar esté sellado o no: esto
+// alimenta el conteo semanal de "Acciones por tu identidad" (sección 6 del
+// pedido), por eso es por DÍA y no por recorrido.
+model IdentityDailyProgress {
+  id                  String   @id @default(cuid())
+  compassId           String
+  compass             Compass  @relation(fields: [compassId], references: [id])
+  date                DateTime
+  strengthsUsed       String? // JSON: string[] de textos de fortaleza marcados hoy
+  valuesLived         String? // JSON: string[] de textos de valor marcados hoy
+  beliefsReprogrammed Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  @@unique([compassId, date])
+  @@index([compassId])
+}
+
+// Una debilidad reconocida ("Autoconocimiento") + el contramensaje que el
+// usuario se escribe a sí mismo para superarla — es el equivalente real al
+// "mensaje a mí mismo" genérico que tenía la primera versión: en vez de un
+// mensaje suelto, cada debilidad tiene el suyo. El trigger de "2-3 días
+// fallados" (etapa 3, ver lib/compassMessages.ts) usa el contramensaje de
+// acá en vez de un campo genérico.
+model Weakness {
+  id             String  @id @default(cuid())
+  compassId      String
+  compass        Compass @relation(fields: [compassId], references: [id])
+  text           String
+  counterMessage String?
+  sortOrder      Int
+
+  @@index([compassId])
+}
+
+// `context` identifica de dónde salió una respuesta, ej.
+// "habit_interrupted:<habitId>" para el "¿qué se interpuso?" de un hábito
+// con 2-3 días seguidos fallados (etapa 3) — hoy el único origen posible,
+// ya no hay banco de preguntas genérico del que venir.
+model CompassReflection {
+  id        String   @id @default(cuid())
+  compassId String
+  compass   Compass  @relation(fields: [compassId], references: [id])
+  context   String?
+  answer    String
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@index([compassId])
+}
+
+// "Mi ideal": una o varias frases de identidad en presente, cada una con su
+// propio "porqué". `habits`: hábitos que alguien vinculó a esta versión de
+// sí mismo (opcional, ver Habit.identityId).
+model Identity {
+  id        String     @id @default(cuid())
+  compassId String
+  compass   Compass    @relation(fields: [compassId], references: [id])
+  statement String
+  why       String?
+  sortOrder Int
+  createdAt DateTime   @default(now())
+  habits    Habit[]
+  // "Micro acciones": planes WOOP que tomaron esta frase como Deseo.
+  woopPlans WoopPlan[]
+
+  @@index([compassId])
+}
+
+// "Micro acciones": lo que el usuario aprende (libro/curso/podcast) deja de
+// ser un dato suelto y se parte en pasos chicos de verdad (MicroAction).
+// `area` reutiliza HabitCategory (mismo enum que ya usan los hábitos) en vez
+// de uno nuevo — un aprendizaje vive en la misma área de vida que un hábito.
+model Learning {
+  id           String                @id @default(cuid())
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id])
+  title        String
+  keyIdea      String?
+  source       String?
+  area         String // HabitCategory: FISICO | ECONOMICO | MENTAL | EMOCIONAL | HABILIDADES | ESPIRITUAL
+  archived     Boolean               @default(false)
+  createdAt    DateTime              @default(now())
+  microActions MicroAction[]
+  applications LearningApplication[]
+  // Vínculo opcional a UN hábito elegido a mano (ej. "Ver contenido de
+  // valor"): al marcarlo cumplido, se ofrece ESTE aprendizaje en el cuadro
+  // de "¿cómo lo aplicaste?" con prioridad sobre la sugerencia por área
+  // (ver GET /learnings/suggested/:habitId). `null` = sin vínculo explícito,
+  // sigue funcionando la sugerencia por área de siempre (solo Mental/Emocional).
+  habitId      String?
+  habit        Habit?                @relation(fields: [habitId], references: [id])
+
+  @@index([userId])
+  @@index([habitId])
+}
+
+// Un paso chico, asignado a un día concreto (fecha pura, mismo criterio que
+// HabitLog.date). `origin` distingue si se creó a mano, salió del cuadro de
+// "¿cómo lo aplicaste?" al marcar un hábito, o de la Revisión del día.
+model MicroAction {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  // Nullable: una micro-acción puede nacer de un Aprendizaje (el caso
+  // original) o del pilar Propósito de "Mi núcleo de identidad" (compassId
+  // en ese caso, learningId null — ver PROPOSITO en origin).
+  learningId  String?
+  learning    Learning? @relation(fields: [learningId], references: [id])
+  compassId   String?
+  compass     Compass?  @relation(fields: [compassId], references: [id])
+  text        String
+  date        DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  origin      String    @default("MANUAL") // MicroActionOrigin: MANUAL | APPLICATION | REVIEW | PROPOSITO
+  createdAt   DateTime  @default(now())
+  // Rediseño de "Micro acciones" (separar acciones de reflexiones): texto
+  // que PARECE una reflexión/nota en vez de un paso accionable (ej. "No lo
+  // he aplicado.", "Aprendí que..."). Nunca se mueve sola — se marca acá
+  // para que el usuario la ordene desde "Ordenar" (ver POST /learnings/:id/
+  // order) y decida si la convierte en Application.
+  isLikelyNote Boolean  @default(false)
+  applications LearningApplication[]
+
+  @@index([userId, date])
+  @@index([learningId])
+  @@index([compassId])
+}
+
+// El "diario de aplicación": la respuesta a "¿cómo aplicaste lo que
+// aprendiste?". Antes SIEMPRE nacía de marcar cumplido un hábito Mental o
+// Emocional (ver ApplyLearningModal.tsx) — ahora también nace de completar
+// una MicroAction en "Hoy" (sin hábito disparador) o de convertir una nota
+// mal guardada como acción (ver POST /learnings/:id/order). `habitId` por
+// eso pasó a opcional: cuando no hay uno, `context` trae el texto libre a
+// mostrar como "mientras: ..." (o null si no hay ninguno de los dos).
+model LearningApplication {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  habitId     String?
+  habit       Habit?       @relation(fields: [habitId], references: [id])
+  context     String?
+  learningId  String
+  learning    Learning     @relation(fields: [learningId], references: [id])
+  type        String // ApplicationType: APPLIED | WILL_APPLY
+  response    String
+  date        DateTime
+  createdAt   DateTime     @default(now())
+  // Opcional: si esta reflexión nació de completar UNA MicroAction puntual
+  // en la vista "Hoy" (¿qué aprendiste al hacerlo?), el vínculo queda acá —
+  // nunca al revés (una Application ya no crea una MicroAction nueva, ver
+  // Paso 1 del pedido: eso era la causa de las "duplicadas").
+  microActionId String?
+  microAction   MicroAction? @relation(fields: [microActionId], references: [id])
+
+  @@index([userId, date])
+  @@index([microActionId])
+}
+
+// Plan de salida de un bloqueo, método WOOP (Wish/Outcome/Obstacle/Plan).
+// `identityId` opcional: si el Deseo se tomó de una frase de Mi Identidad.
+// `sourceInsightType`/`sourceInsightSummary` opcionales: si se abrió desde
+// un botón de "Patrones detectados", una copia de texto del patrón que lo
+// disparó (los insights no son una entidad persistida, se recalculan cada
+// vez — no hay a qué hacerles FK). `reminderWeekday`/`reminderTime`
+// son metadata de recordatorio en-app (no hay push real, ver banner de
+// Revisión del día) — `timesUsed`/`timesWorked` alimentan "Usado N ·
+// funcionó M" en la tarjeta del plan.
+model WoopPlan {
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id])
+  // Nombre corto del plan para la tarjeta ("Salir a hacer ejercicio en la
+  // mañana") — distinto de `desire` (el Deseo tal cual se respondió en el
+  // paso W, más detallado). Nullable por si algún plan viejo no lo tiene:
+  // el frontend cae a `desire` en ese caso.
+  title                String?
+  desire               String
+  result               String
+  obstacle             String
+  planIf               String
+  planThen             String
+  // "Hábitos por identidad": a qué área de vida pertenece este plan — sin
+  // esto no hay forma de ofrecer "+ Crear hábito desde mi WOOP" en una
+  // región vacía (ver HabitIdentityGrid.tsx). Nullable: los planes viejos
+  // quedan sin área (nunca se las inventa), y el selector del asistente
+  // (WoopFlow.tsx) la pide de ahora en más.
+  area                 String?
+  identityId           String?
+  identity             Identity? @relation(fields: [identityId], references: [id])
+  sourceInsightType    String?
+  sourceInsightSummary String?
+  reminderWeekday      Int?
+  reminderTime         String?
+  timesUsed            Int       @default(0)
+  timesWorked          Int       @default(0)
+  // Último día (fecha pura) en que se respondió "¿Usaste el plan hoy?" —
+  // evita que POST /woop-plans/:id/result se pueda llamar dos veces el
+  // mismo día (pedido explícito: "Solo se responde una vez al día").
+  lastResultDate       DateTime?
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// "Núcleo Neural" (Cerebro Interactivo en /tracker + Mi Mapa Neuronal):
+// impulsos acumulados de por vida por área, uno por (usuario, área) — antes
+// vivía SOLO en localStorage del dispositivo; se mueve acá porque es
+// progreso de largo plazo que no puede perderse al cambiar de dispositivo
+// (pedido explícito del usuario). localStorage pasa a ser caché de lectura
+// rápida, ya no la fuente de verdad — ver apps/web/.../brainHistory.ts.
+// `area` reutiliza el mismo vocabulario de 6 claves que `BrainArea` en el
+// frontend (men/emo/fis/esp/eco/hab), mapeado 1:1 a HabitCategory (ver
+// AREA_OF_CATEGORY en brainTokens.ts) — no es HabitCategory directamente
+// porque el cerebro agrupa por REGIÓN, no por categoría de hábito, aunque
+// hoy la relación sea 1 a 1.
+model NeuralAreaStat {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  area            String // BrainArea: men | emo | fis | esp | eco | hab
+  impulsosDeVida  Int       @default(0)
+  // Días DISTINTOS con al menos un impulso en esta área — para la meta de
+  // 66 días (Lally et al., 2009). No es lo mismo que impulsosDeVida (un
+  // mismo día puede sumar varios impulsos).
+  activeDays      Int       @default(0)
+  lastImpulseDate DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, area])
+}
+
+// Estado del núcleo (0 Latente .. 4 Núcleo pleno) al cierre de cada día —o
+// el más reciente del día en curso, actualizado en cada impulso—, para la
+// franja de "Últimos 30 días" de Mi Mapa Neuronal.
+model NeuralDailyState {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime
+  coreState String // CoreStateKey: latente | despertar | enfoque | flow | pleno
+  impulses  Int
+
+  @@unique([userId, date])
 }

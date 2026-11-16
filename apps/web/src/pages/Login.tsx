@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate, type Location } from "react-router-dom";
 import { useLoginMutation } from "../api/auth";
 import { useAuth } from "../lib/useAuth";
+import { useBackgroundScene } from "../lib/useBackgroundScene";
+import { AnimatedBackground } from "../components/AnimatedBackground";
 import { Logo } from "../components/Logo";
 
 export function Login() {
@@ -9,6 +11,13 @@ export function Login() {
   const location = useLocation();
   const navigate = useNavigate();
   const loginMutation = useLoginMutation();
+  // Login/Register viven fuera de AppShell (son públicas, sin sidebar) —
+  // por eso nunca heredaban el fondo neuronal animado de las pantallas
+  // autenticadas, a pesar de usar los mismos tokens oscuros (pedido
+  // explícito, con captura). BackgroundProvider envuelve toda la app desde
+  // main.tsx, así que la preferencia de escena ya está disponible acá
+  // también, sin necesitar nada nuevo.
+  const { scene } = useBackgroundScene();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,16 +44,17 @@ export function Login() {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center px-4 py-10"
+      className="relative isolate flex min-h-screen items-center justify-center px-4 py-10"
       style={{ background: "var(--bg)" }}
     >
+      <AnimatedBackground scene={scene} />
       <form
         onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border p-6"
+        className="relative flex w-full max-w-sm flex-col gap-4 rounded-2xl border p-6"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <div className="flex flex-col items-center gap-3 text-center">
-          <Logo compact />
+          <Logo />
           <div>
             <h1 className="font-display text-xl font-bold" style={{ color: "var(--text)" }}>
               Bienvenido de nuevo
@@ -81,6 +91,10 @@ export function Login() {
           />
         </label>
 
+        <Link to="/forgot-password" className="-mt-2 self-end text-xs" style={{ color: "var(--accent)" }}>
+          ¿Olvidaste tu contraseña?
+        </Link>
+
         {loginMutation.isError && (
           <p className="text-sm text-red-500">Email o contraseña incorrectos.</p>
         )}
@@ -95,9 +109,9 @@ export function Login() {
         </button>
 
         <p className="text-center text-sm" style={{ color: "var(--text-2)" }}>
-          ¿Todavía no tenés cuenta?{" "}
+          ¿Todavía no tienes cuenta?{" "}
           <Link to="/register" style={{ color: "var(--accent)" }}>
-            Registrate
+            Regístrate
           </Link>
         </p>
       </form>

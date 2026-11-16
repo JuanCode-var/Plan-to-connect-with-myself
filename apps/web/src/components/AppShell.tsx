@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useTheme } from "../lib/useTheme";
 import { useAuth } from "../lib/useAuth";
 import { useBackgroundScene } from "../lib/useBackgroundScene";
@@ -8,7 +8,29 @@ import { ProfileMenu } from "./ProfileMenu";
 import { Logo } from "./Logo";
 import { TimeOfDayIcon } from "./TimeOfDayIcon";
 import { AnimatedBackground } from "./AnimatedBackground";
+import { GlobalSearch } from "./GlobalSearch";
+import { NotificationBell } from "./NotificationBell";
 import { ScrollToTopButton } from "./ScrollToTopButton";
+import { ToastHost } from "./ToastHost";
+
+function IconWord() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10" cy="10" r="7.2" />
+      <circle cx="10" cy="10" r="4.3" strokeDasharray="1.2 1.6" />
+      <path d="M8.2 10.3l1.3 1.3 2.3-2.8" />
+    </svg>
+  );
+}
+
+function IconCompass() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10" cy="10" r="7.2" />
+      <path d="M12.6 7.4l-1.8 3.9-3.9 1.8 1.8-3.9 3.9-1.8z" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function IconTracker() {
   return (
@@ -65,6 +87,18 @@ function IconDashboard() {
   );
 }
 
+// Bombilla (idea → acción) — mismo dibujo que el encabezado de
+// pages/MicroActions.tsx, en viewBox 24x24 (el resto de los íconos usa
+// 20x20; no hace falta compartir viewBox entre íconos sueltos).
+function IconMicroActions() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" />
+    </svg>
+  );
+}
+
 function IconLibrary() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -75,6 +109,12 @@ function IconLibrary() {
 }
 
 const NAV_ITEMS: Array<{ to: string; label: string; Icon: ComponentType }> = [
+  // Primera a propósito: "Mi Palabra" es la sección más importante de la
+  // app (pedido explícito del usuario) — el único ítem que encabeza el
+  // menú en vez de seguir el orden de "lo que se usa todos los días".
+  { to: "/palabra", label: "Mi Palabra", Icon: IconWord },
+  { to: "/identidad", label: "Mi Identidad", Icon: IconCompass },
+  { to: "/microacciones", label: "Micro acciones", Icon: IconMicroActions },
   { to: "/tracker", label: "Seguimiento", Icon: IconTracker },
   { to: "/metas", label: "Metas", Icon: IconGoals },
   { to: "/habits", label: "Hábitos", Icon: IconHabits },
@@ -91,10 +131,18 @@ const NAV_ITEMS: Array<{ to: string; label: string; Icon: ComponentType }> = [
  * mobile) lleva el saludo grande a la izquierda y el `ProfileMenu` (avatar +
  * tema + cerrar sesión) a la derecha — la otra esquina de esa misma barra.
  */
+// Pantallas donde el fondo neuronal animado compite visualmente con la red
+// propia del Cerebro Interactivo/Mi Mapa Neuronal (pedido explícito, con
+// captura) — se oculta ahí para que la red del cerebro se vea sin ruido
+// detrás. El resto de la app lo conserva sin cambios.
+const ROUTES_WITHOUT_BACKGROUND = ["/tracker", "/mi-mapa-neuronal"];
+
 export function AppShell() {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const { scene, setScene } = useBackgroundScene();
+  const location = useLocation();
+  const hideBackground = ROUTES_WITHOUT_BACKGROUND.includes(location.pathname);
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row" style={{ background: "var(--bg)" }}>
@@ -102,7 +150,15 @@ export function AppShell() {
         className="hidden w-60 shrink-0 flex-col gap-8 border-r p-5 md:flex"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
-        <Logo />
+        <div className="flex flex-col gap-1">
+          <Logo />
+          <span
+            className="pl-1 text-[10px] font-bold tracking-[0.18em] uppercase"
+            style={{ color: "var(--text-2)" }}
+          >
+            Mejora · Aprende · Evoluciona
+          </span>
+        </div>
         <nav className="flex flex-col gap-1">
           {NAV_ITEMS.map(({ to, label, Icon }) => (
             <NavLink
@@ -132,7 +188,7 @@ export function AppShell() {
           </div>
 
           {user && (
-            <div className="flex min-w-0 flex-1 items-center gap-2" style={{ color: "var(--accent)" }}>
+            <div className="flex min-w-0 shrink items-center gap-2" style={{ color: "var(--accent)" }}>
               <TimeOfDayIcon variant={timeOfDayVariant()} size={22} />
               <span className="font-display truncate text-lg font-bold sm:text-xl" style={{ color: "var(--text)" }}>
                 {timeOfDayGreeting()}, <span style={{ color: "var(--accent)" }}>{firstName(user.name)}</span>
@@ -140,27 +196,38 @@ export function AppShell() {
             </div>
           )}
 
-          {user && (
-            <ProfileMenu
-              user={user}
-              theme={theme}
-              onToggleTheme={toggleTheme}
-              backgroundScene={scene}
-              onBackgroundSceneChange={setScene}
-              onSignOut={signOut}
-            />
-          )}
+          {/* Buscador + campanita + avatar agrupados en un solo item flex:
+              así "justify-between" del header reparte el espacio sobrante
+              solo entre el saludo y este grupo, no entre cada ícono suelto
+              (eso dejaba la campanita lejos del avatar en pantallas anchas). */}
+          <div className="flex min-w-0 shrink items-center gap-3">
+            <GlobalSearch />
+
+            {user && <NotificationBell />}
+
+            {user && (
+              <ProfileMenu
+                user={user}
+                theme={theme}
+                onToggleTheme={toggleTheme}
+                backgroundScene={scene}
+                onBackgroundSceneChange={setScene}
+                onSignOut={signOut}
+              />
+            )}
+          </div>
         </header>
 
         <main className="relative isolate min-w-0 flex-1 pb-16 md:pb-0" style={{ color: "var(--text)" }}>
-          <AnimatedBackground scene={scene} />
+          {!hideBackground && <AnimatedBackground scene={scene} />}
           <Outlet />
           <ScrollToTopButton />
+          <ToastHost />
         </main>
 
         <nav
           className="fixed inset-x-0 bottom-0 z-10 flex items-stretch justify-around border-t md:hidden"
-          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+          style={{ background: "var(--surface-solid, var(--surface))", borderColor: "var(--border)" }}
         >
           {NAV_ITEMS.map(({ to, label, Icon }) => (
             <NavLink

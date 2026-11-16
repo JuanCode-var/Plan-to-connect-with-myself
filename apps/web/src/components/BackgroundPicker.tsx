@@ -1,12 +1,25 @@
 import type { BackgroundScene } from "../lib/backgroundContext";
 
 const OPTIONS: Array<{ value: BackgroundScene; label: string }> = [
+  { value: "neural", label: "Neuronal" },
   { value: "stars", label: "Estrellas" },
   { value: "space", label: "Espacio" },
   { value: "snow", label: "Nieve" },
 ];
 
 function SceneIcon({ scene }: { scene: BackgroundScene }) {
+  if (scene === "neural") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <circle cx="10" cy="10" r="1.6" fill="currentColor" stroke="none" />
+        <circle cx="4" cy="5" r="1.1" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="6" r="1.1" fill="currentColor" stroke="none" />
+        <circle cx="5" cy="15" r="1.1" fill="currentColor" stroke="none" />
+        <circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none" />
+        <path d="M10 10L4 5M10 10l6-4M10 10L5 15M10 10l5 5" />
+      </svg>
+    );
+  }
   if (scene === "stars") {
     return (
       <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -35,8 +48,9 @@ function SceneIcon({ scene }: { scene: BackgroundScene }) {
 
 /**
  * Selector de la escena de fondo animado, vive en ProfileMenu junto al
- * toggle de tema. Las 3 opciones (estrellas / espacio / nieve) están siempre
- * disponibles a la vez — no hay una "recomendada" fija, elige el usuario.
+ * toggle de tema. Las 4 opciones (neuronal / estrellas / espacio / nieve)
+ * están siempre disponibles a la vez — neuronal es la de fábrica, pero no
+ * hay una "forzada", elige el usuario.
  */
 export function BackgroundPicker({
   scene,

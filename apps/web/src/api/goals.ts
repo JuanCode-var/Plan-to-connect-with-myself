@@ -1,31 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
-import { showToast } from "../lib/toast";
-import type { GoalStatus } from "../domain";
-
-export type GoalStep = {
-  id: string;
-  goalId: string;
-  description: string;
-  done: boolean;
-  sortOrder: number;
-  createdAt: string;
-};
+import type { HabitCategory } from "../domain";
 
 export type Goal = {
   id: string;
   cycleId: string;
   title: string;
+  area: HabitCategory | null;
   why: string | null;
   visualization: string | null;
-  specification: string;
+  targetCount: number;
+  unit: string;
   targetDate: string;
-  status: GoalStatus;
-  followUpNotes: string | null;
-  celebration: string | null;
+  progress: number;
+  achievedAt: string | null;
   sortOrder: number;
   createdAt: string;
-  steps: GoalStep[];
+};
+
+export type GoalIdea = {
+  key: string;
+  area: HabitCategory | null;
+  title: string;
+  kind: "woop" | "word" | "microaction";
+  closesOn: string | null;
 };
 
 function goalsQueryKey(cycleId: string | undefined) {
@@ -40,12 +38,22 @@ export function useGoals(cycleId: string | undefined) {
   });
 }
 
-type CreateGoalInput = {
+export function useGoalIdeas(cycleId: string | undefined) {
+  return useQuery({
+    queryKey: ["goals", "ideas", cycleId],
+    queryFn: () => apiFetch<GoalIdea[]>(`/goals/ideas?cycleId=${cycleId}`),
+    enabled: !!cycleId,
+  });
+}
+
+export type CreateGoalInput = {
   cycleId: string;
   title: string;
+  area: HabitCategory;
   why?: string;
   visualization?: string;
-  specification: string;
+  targetCount: number;
+  unit: string;
   targetDate: string;
 };
 
@@ -61,9 +69,7 @@ export function useCreateGoal() {
 type UpdateGoalInput = {
   id: string;
   cycleId: string;
-  data: Partial<
-    Pick<Goal, "title" | "why" | "visualization" | "specification" | "targetDate" | "status" | "followUpNotes" | "celebration">
-  >;
+  data: Partial<Pick<Goal, "title" | "area" | "why" | "visualization" | "targetCount" | "unit" | "targetDate">>;
 };
 
 export function useUpdateGoal() {
@@ -75,50 +81,31 @@ export function useUpdateGoal() {
   });
 }
 
-export function useDeleteGoal(cycleId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/goals/${id}`, { method: "DELETE" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: goalsQueryKey(cycleId) }),
-  });
-}
-
-export function useCreateGoalStep(cycleId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ goalId, description }: { goalId: string; description: string }) =>
-      apiFetch<GoalStep>(`/goals/${goalId}/steps`, { method: "POST", body: JSON.stringify({ description }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: goalsQueryKey(cycleId) }),
-  });
-}
-
 /**
- * Tildar/destildar un paso: optimista (mismo criterio que useSetLogStatus en
- * api/tracking.ts) porque es la interacción más frecuente de toda la
- * pantalla de Metas — el checklist de la fase 4/paso 3 de Tracy se usa todos
- * los días, no debería sentirse más lento que marcar un hábito en /tracker.
+ * "+1 · Registrar avance" y "Restar 1" del menú ⋯ — optimista (mismo
+ * criterio que useToggleGoalStep antes, useSetLogStatus en api/tracking.ts):
+ * es la interacción más frecuente de toda la pantalla, no debería sentirse
+ * más lenta que marcar un hábito en /tracker.
  */
-export function useToggleGoalStep(cycleId: string | undefined) {
+export function useRegisterGoalProgress(cycleId: string | undefined) {
   const queryClient = useQueryClient();
   const queryKey = goalsQueryKey(cycleId);
 
   return useMutation({
-    mutationFn: ({ goalId, stepId, done }: { goalId: string; stepId: string; done: boolean }) =>
-      apiFetch<GoalStep>(`/goals/${goalId}/steps/${stepId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ done }),
-      }),
+    mutationFn: ({ id, delta }: { id: string; delta: 1 | -1 }) =>
+      apiFetch<Goal>(`/goals/${id}/progress`, { method: "POST", body: JSON.stringify({ delta }) }),
 
-    onMutate: async ({ goalId, stepId, done }) => {
+    onMutate: async ({ id, delta }) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<Goal[]>(queryKey);
 
       queryClient.setQueryData<Goal[]>(queryKey, (old) =>
-        old?.map((goal) =>
-          goal.id !== goalId
-            ? goal
-            : { ...goal, steps: goal.steps.map((s) => (s.id === stepId ? { ...s, done } : s)) },
-        ),
+        old?.map((goal) => {
+          if (goal.id !== id) return goal;
+          const progress = Math.max(0, goal.progress + delta);
+          const achieved = progress >= goal.targetCount;
+          return { ...goal, progress, achievedAt: achieved ? (goal.achievedAt ?? new Date().toISOString()) : null };
+        }),
       );
 
       return { previous };
@@ -126,18 +113,16 @@ export function useToggleGoalStep(cycleId: string | undefined) {
 
     onError: (_error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-      showToast("No se pudo guardar el cambio. Se revirtió el paso.");
     },
 
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 }
 
-export function useDeleteGoalStep(cycleId: string | undefined) {
+export function useDeleteGoal(cycleId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ goalId, stepId }: { goalId: string; stepId: string }) =>
-      apiFetch<void>(`/goals/${goalId}/steps/${stepId}`, { method: "DELETE" }),
+    mutationFn: (id: string) => apiFetch<void>(`/goals/${id}`, { method: "DELETE" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: goalsQueryKey(cycleId) }),
   });
 }

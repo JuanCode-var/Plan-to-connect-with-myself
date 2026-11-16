@@ -1,5 +1,7 @@
 import { prisma } from "../src/db";
+import { seedDoses } from "./seed-doses";
 import { seedLibrary } from "./seed-library-data";
+import { seedLibrarySchools } from "./seed-library-schools";
 
 // Contrato de valores (ver nota en schema.prisma: SQLite no soporta enums nativos
 // en Prisma, así que HabitMoment, HabitCategory, HabitPriority y LogStatus se
@@ -131,34 +133,48 @@ async function main() {
     process.exit(1);
   }
 
-  for (let i = 0; i < habits.length; i++) {
-    const habit = habits[i];
-    await prisma.habit.create({
+  // Semilla de hábitos/Ciclo 1: SOLO la primera vez que se corre el seed
+  // para esta cuenta (sin esto, cada `npx prisma db seed` posterior — p. ej.
+  // para cargar contenido nuevo de Biblioteca — volvía a crear estos 12
+  // hábitos de arranque desde cero, duplicando los que el usuario ya había
+  // editado/renombrado/desactivado. Incidente real: 2026-10-31).
+  const existingHabitCount = await prisma.habit.count({ where: { userId: user.id } });
+  if (existingHabitCount === 0) {
+    for (let i = 0; i < habits.length; i++) {
+      const habit = habits[i];
+      await prisma.habit.create({
+        data: {
+          name: habit.name,
+          moment: habit.moment,
+          category: habit.category,
+          priority: habit.priority,
+          specification: habit.specification,
+          sortOrder: i + 1,
+          active: true,
+          userId: user.id,
+        },
+      });
+    }
+
+    await prisma.cycle.create({
       data: {
-        name: habit.name,
-        moment: habit.moment,
-        category: habit.category,
-        priority: habit.priority,
-        specification: habit.specification,
-        sortOrder: i + 1,
-        active: true,
+        name: "Ciclo 1",
+        startDate: utcMidnight(2026, 9, 14),
+        endDate: utcMidnight(2026, 10, 13),
         userId: user.id,
       },
     });
+
+    console.log(`Sembrados ${habits.length} hábitos y Ciclo 1 para ${user.email}.`);
+  } else {
+    console.log(`${user.email} ya tiene ${existingHabitCount} hábito(s) — se omite la semilla de hábitos/Ciclo 1 (no es la primera vez que se corre el seed).`);
   }
 
-  await prisma.cycle.create({
-    data: {
-      name: "Ciclo 1",
-      startDate: utcMidnight(2026, 9, 14),
-      endDate: utcMidnight(2026, 10, 13),
-      userId: user.id,
-    },
-  });
-
   await seedLibrary(prisma);
+  await seedLibrarySchools(prisma);
+  await seedDoses(prisma);
 
-  console.log(`Seed completo: ${habits.length} hábitos, Ciclo 1 y la Biblioteca creados para ${user.email}.`);
+  console.log("Seed de Biblioteca completo.");
 }
 
 main()

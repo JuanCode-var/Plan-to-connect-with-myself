@@ -6,8 +6,8 @@ import { getAuthToken, setAuthToken } from "./authToken";
 
 /**
  * Única fuente de verdad de "quién entró" — identifica a la persona para
- * personalizar saludos/copy motivacional (AppShell, TodayProgress,
- * TrackerMatrix) Y para que el backend filtre cada hábito/ciclo/entrada del
+ * personalizar saludos/copy motivacional (AppShell, TrackerMatrix) Y para
+ * que el backend filtre cada hábito/ciclo/entrada del
  * diario/meta por dueño (ver `requireAuth` middleware en apps/api/src;
  * cada cuenta ve solo lo suyo). Al montar, si hay un token guardado se
  * valida contra GET /api/auth/me; si el token venció o es inválido, se

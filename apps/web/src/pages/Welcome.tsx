@@ -10,8 +10,10 @@ import { toDateOnlyISO } from "../lib/completion";
 import { todayISO } from "../lib/date";
 import { markWelcomeSeenToday } from "../lib/welcomeSeen";
 import { useAuth } from "../lib/useAuth";
+import { useBackgroundScene } from "../lib/useBackgroundScene";
+import { AnimatedBackground } from "../components/AnimatedBackground";
 import { TimeOfDayIcon } from "../components/TimeOfDayIcon";
-import { FlameIcon } from "../components/FlameIcon";
+import { LightningIcon } from "../components/LightningIcon";
 
 function capitalize(text: string): string {
   return text.length === 0 ? text : text[0].toUpperCase() + text.slice(1);
@@ -37,6 +39,10 @@ export function Welcome() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  // Mismo criterio que Login.tsx/Register.tsx: vive fuera de AppShell
+  // (RequireAuth la monta antes del shell), así que nunca heredaba el fondo
+  // neuronal animado.
+  const { scene } = useBackgroundScene();
 
   const { data: cycles } = useCycles();
   const activeCycle = cycles?.find((c) => c.isActive);
@@ -72,11 +78,12 @@ export function Welcome() {
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center justify-center px-4 py-10"
+      className="relative isolate flex min-h-screen flex-col items-center justify-center px-4 py-10"
       style={{ background: "var(--bg)" }}
     >
+      <AnimatedBackground scene={scene} />
       <div
-        className="welcome-card flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-8 text-center"
+        className="welcome-card relative flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border p-8 text-center"
         style={{ background: "var(--surface)", borderColor: "var(--border)" }}
       >
         <span style={{ color: "var(--accent)" }}>
@@ -94,10 +101,10 @@ export function Welcome() {
         {perfectStreak >= 1 ? (
           <div
             className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold"
-            style={{ background: "rgba(217,119,6,0.18)", color: "#92400E" }}
+            style={{ background: "var(--accent-soft)", color: "var(--accent-yellow, var(--accent))" }}
           >
-            <FlameIcon size={14} />
-            Llevás {perfectStreak} {perfectStreak === 1 ? "día perfecto" : "días perfectos"} seguidos
+            <LightningIcon size={14} />
+            Llevas {perfectStreak} {perfectStreak === 1 ? "día perfecto" : "días perfectos"} seguidos
           </div>
         ) : (
           <p className="text-sm" style={{ color: "var(--text-2)" }}>

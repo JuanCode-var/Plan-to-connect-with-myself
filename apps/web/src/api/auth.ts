@@ -30,3 +30,25 @@ export function useLoginMutation() {
 export function fetchCurrentUser(): Promise<AuthUser> {
   return apiFetch<AuthUser>("/auth/me");
 }
+
+/** Mensaje siempre genérico (ver apps/api/src/routes/auth.ts): nunca
+ * confirma si el email está registrado o no. */
+export function useForgotPasswordMutation() {
+  return useMutation({
+    mutationFn: (input: { email: string }) =>
+      apiFetch<{ message: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+  });
+}
+
+export function useResetPasswordMutation() {
+  return useMutation({
+    mutationFn: (input: { token: string; newPassword: string }) =>
+      apiFetch<AuthResponse>("/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+  });
+}

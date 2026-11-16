@@ -1,0 +1,25 @@
+# Dos servicios, sin contenedor de base de datos (la app ya usa Turso,
+# remota — ver apps/api/src/db.ts). Levantar con: docker compose up --build
+# y abrir http://localhost:8080.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - apps/api/.env
+    expose:
+      - "5000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      # 8080 del host (no 80) para no pisar otro servicio que ya esté
+      # usando el 80 en la máquina donde se prueba esto.
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped

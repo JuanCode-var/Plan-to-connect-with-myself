@@ -3,12 +3,15 @@
 // y hay que informar al usuario que la celda se revirtió. Emisor simple sin
 // dependencias: ToastHost.tsx se suscribe y renderiza.
 //
-// `kind` distingue la frase motivacional (TrackerMatrix.tsx, al marcar un
-// hábito DONE) del resto de los avisos (errores, "día completo"): antes
-// compartía el mismo toast chico de 4s pensado para "ok, guardado" — una
-// frase necesita más tiempo en pantalla y pesa distinto, así que tiene su
-// propio tratamiento visual en ToastHost.tsx.
-export type ToastKind = "default" | "quote";
+// `kind` distingue 3 tipos de aviso, cada uno con su propio tratamiento
+// visual en ToastHost.tsx: "default" (errores, "día completo" — chico, 4s),
+// "quote" (frase al azar de la Biblioteca al cumplir un hábito — itálica,
+// 8s) y "identity" (mensajes de Mi Identidad — etapa 3, con tu propia
+// frase/contramensaje). "quote" e "identity" pueden aparecer juntos en el
+// mismo clic (ver TrackerMatrix.tsx) y antes se veían idénticos, sin forma
+// de distinguir cuál era cuál — por eso "identity" tiene su propio look
+// (kicker + sin itálica), no reutiliza el de "quote".
+export type ToastKind = "default" | "quote" | "identity";
 
 type Listener = (message: string, kind: ToastKind) => void;
 
